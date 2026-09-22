@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Nature Caffe design tokens.
+
+   Brief: warm café/brown, cream/white ground, green reserved for money landing
+   safely. This is a counter tool before it is a brand surface, so the palette
+   stays quiet and the type does the work — a cashier reads this screen a few
+   hundred times a day under bad lighting, often at arm's length.
+
+   Two rules held throughout:
+     · No pure white and no pure black. Everything carries a little warmth, so
+       the screen reads as paper rather than as a spreadsheet.
+     · Green means one thing only: a payment succeeded. It is never decoration.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  /* Brand — roasted coffee browns. 500 is the primary action colour. */
+  --color-bean-50: oklch(0.973 0.008 76);
+  --color-bean-100: oklch(0.941 0.017 74);
+  --color-bean-200: oklch(0.879 0.034 71);
+  --color-bean-300: oklch(0.791 0.052 65);
+  --color-bean-400: oklch(0.677 0.067 55);
+  --color-bean-500: oklch(0.556 0.073 48);
+  --color-bean-600: oklch(0.464 0.068 45);
+  --color-bean-700: oklch(0.386 0.058 44);
+  --color-bean-800: oklch(0.311 0.045 44);
+  --color-bean-900: oklch(0.243 0.033 45);
+
+  /* Ground — warm paper, not white. */
+  --color-cream-50: oklch(0.992 0.004 85);
+  --color-cream-100: oklch(0.979 0.008 83);
+  --color-cream-200: oklch(0.955 0.012 80);
+  --color-cream-300: oklch(0.919 0.016 78);
+
+  /* Text ramp — four steps, all warm-shifted off neutral grey. */
+  --color-ink-900: oklch(0.243 0.014 60);
+  --color-ink-700: oklch(0.402 0.012 60);
+  --color-ink-500: oklch(0.553 0.010 62);
+  --color-ink-400: oklch(0.649 0.009 65);
+
+  /* Semantic. Green is payment-confirmed and nothing else. */
+  --color-paid-50: oklch(0.961 0.030 155);
+  --color-paid-500: oklch(0.606 0.130 152);
+  --color-paid-600: oklch(0.518 0.118 152);
+  --color-paid-700: oklch(0.432 0.098 152);
+
+  --color-alert-50: oklch(0.958 0.026 28);
+  --color-alert-500: oklch(0.586 0.204 27);
+  --color-alert-600: oklch(0.513 0.186 27);
+
+  --color-warn-50: oklch(0.968 0.040 85);
+  --color-warn-500: oklch(0.716 0.152 70);
+
+  /* ---------------------------------------------------------------------
+     Welcome-screen palette — the approved brand colours, kept as the exact
+     hex values that were signed off rather than converted to oklch, so a
+     designer comparing against the reference finds the numbers they chose.
+     Used by the welcome route; the till keeps the quieter palette above.
+     --------------------------------------------------------------------- */
+  --color-ivory: #f8f3ea;
+  --color-forest: #0e5a35;
+  --color-leaf: #1f8a4c;
+  --color-mint: #eef7e9;
+  --color-coffee: #5a2e12;
+  --color-caramel: #b87532;
+  --color-sand: #f3e8d8;
+  --color-brandink: #18352a;
+  --color-brandmuted: #665f58;
+  --color-brandline: #dccfbe;
+
+  /* Type. Fraunces carries the café warmth in the wordmark and headings;
+     Inter does every functional job, with tabular figures for money. */
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Welcome screen only — see the note in src/app/layout.tsx. */
+  --font-script: var(--font-script-face), "Segoe Script", cursive;
+  --font-hand: var(--font-hand-face), "Segoe Script", cursive;
+  /* Receipts only. Thermal printers are monospace by nature and the columns
+     align for free; the system stack means no extra font download. */
+  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono",
+    Menlo, Consolas, monospace;
+
+  /* Rounded cards, per the brief. */
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --radius-sheet: 1.5rem;
+
+  /* Touch targets sized for a counter, not a desk.
+     A cashier hits these with a thumb, mid-conversation. */
+  --spacing-touch: 3rem;
+  --spacing-touch-lg: 3.5rem;
+
+  /* Two elevation levels only. Warm-tinted so shadows don't go grey on cream. */
+  --shadow-card: 0 1px 2px oklch(0.243 0.033 45 / 0.05),
+    0 2px 8px oklch(0.243 0.033 45 / 0.04);
+  --shadow-sheet: 0 -2px 12px oklch(0.243 0.033 45 / 0.08),
+    0 8px 32px oklch(0.243 0.033 45 / 0.10);
+}
+
+/* Body copy at 16px minimum: this is read under café lighting, at arm's length. */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-cream-100);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Money must never shift width as digits change — a total that jitters while
+   the cashier reads it is a total they re-read. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* A visible, high-contrast focus ring: this app gets driven by keyboard on a
+   desktop counter, and a brown-on-cream default ring is not good enough. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-bean-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+/* Motion is functional only, and capped. The brief asks for minimal animation
+   and this is a till — nothing here should ever feel like it is performing. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Stop iOS zooming the page when a cashier taps into a field. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1rem);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   58 mm thermal receipt.
+
+   The same markup is both the on-screen preview and the printed output, so
+   what the cashier checks is literally what the printer receives — no second
+   template to drift out of sync.
+
+   Everything is in millimetres, because the paper is. Pixels would be a guess
+   that happens to look right on one screen.
+   --------------------------------------------------------------------------- */
+
+.receipt {
+  /* Stated explicitly rather than inherited from the framework reset. With
+     content-box this element measures 63mm — the 58mm width plus its own
+     padding — and the right-hand Amt column prints off the edge of the roll.
+     Too quiet a failure, and too expensive, to leave depending on a reset. */
+  box-sizing: border-box;
+  width: var(--receipt-width, 58mm);
+  padding: 3mm 2mm;
+  background: #fff;
+  color: #000;
+  /* Fallback spelled out for the same reason: if the token is ever missing the
+     receipt must still be monospace, or the columns stop lining up. */
+  font-family: var(--font-mono, ui-monospace, "Cascadia Mono", Menlo, monospace);
+  /* 8pt is what makes ~32 monospace characters fit across 54mm of printable
+     width, which is the line length a 58mm thermal roll is built around.
+     At 9.5pt only 26 fit and every second item name wraps. */
+  font-size: 8pt;
+  line-height: 1.35;
+  /* Thermal heads render solid black far better than antialiased grey. */
+  -webkit-font-smoothing: none;
+}
+
+.receipt-rule {
+  border: 0;
+  border-top: 1px dashed #000;
+  margin: 1.5mm 0;
+}
+
+/* Item rows: name flexes, the three numeric columns are fixed so they line up
+   down the roll the way the spec's example does.
+   Qty 3ch (up to 999), Rate 5ch ("1,999"), Amt 6ch ("19,999") — sized to the
+   largest realistic café value and no wider, because every character spent
+   here is one the item name loses. */
+.receipt-row {
+  display: grid;
+  grid-template-columns: 1fr 3ch 5ch 6ch;
+  gap: 0.5ch;
+}
+
+.receipt-row > :not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt-total {
+  font-size: 12pt;
+  font-weight: 700;
+}
+
+@media print {
+  @page {
+    size: 58mm auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 58mm;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  /* Everything that isn't the receipt disappears — toolbars, nav, buttons. */
+  .no-print {
+    display: none !important;
+  }
+
+  .receipt {
+    width: 58mm;
+    box-shadow: none;
+    border: 0;
+  }
+
+  /* A page break mid-receipt wastes a strip of paper on every sale. */
+  .receipt,
+  .receipt-row {
+    break-inside: avoid;
+  }
+}
