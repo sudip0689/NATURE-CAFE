@@ -9,49 +9,63 @@
  *   [cause]: Missing NEXT_PUBLIC_SUPABASE_URL
  *
  * Every route here is dynamic (server-rendered on demand), so nothing is
- * needed at build time. Reading on demand also means changing the values on
- * the host takes effect on the next request instead of requiring a rebuild.
+ * needed at build time.
  *
- * These are *publishable* values and ship to no one: this module is imported
- * only by src/lib/supabase/server.ts, which runs on the server. The
- * NEXT_PUBLIC_ names are kept because they are what the docs and .env.example
- * use, but the unprefixed spellings work too — nothing is inlined into the
- * browser bundle either way.
+ * ---------------------------------------------------------------------------
+ * Why the names are looked up through an array instead of written out
+ *
+ * Next.js replaces `process.env.NEXT_PUBLIC_ANYTHING` with the build-time
+ * value as literal text, and it does this in the server bundle too — not just
+ * the browser one. Writing the expression out therefore does NOT read the
+ * environment at runtime; it reads whatever string the compiler pasted in.
+ *
+ * On Vercel the two values are marked Sensitive, so the build step saw
+ * nothing and pasted in empty strings. Every request to /owner then died with
+ * "Missing NEXT_PUBLIC_SUPABASE_URL" even though the variables were set,
+ * because by then the code was no longer asking the environment at all.
+ *
+ * Indexing `process.env` with a name the compiler cannot see as a literal
+ * defeats that substitution, so these become genuine runtime reads. That is
+ * what we want regardless: nothing here is used in the browser (the only
+ * consumer is src/lib/supabase/server.ts), and reading on demand means
+ * changing a value on the host takes effect on the next request rather than
+ * requiring a rebuild.
+ *
+ * Do not "simplify" this back to `process.env.NEXT_PUBLIC_SUPABASE_URL`.
  *
  * The service-role key is deliberately absent and must never appear here.
  */
 
-function read(primary: string | undefined, fallback: string | undefined, name: string): string {
-  const value = (primary ?? fallback ?? "").trim();
-
-  if (!value) {
-    throw new Error(
-      `Missing ${name}. Set it in your hosting provider's environment ` +
-        `variables (or copy .env.example to .env.local for local work). ` +
-        `The app cannot reach its database without it.`,
-    );
-  }
-
-  return value;
+/** Indexed access — opaque to Next.js's literal NEXT_PUBLIC_* substitution. */
+function fromEnv(name: string): string {
+  return (process.env[name] ?? "").trim();
 }
 
 /**
- * Written out in full rather than looked up dynamically so that the values
- * still resolve if this module is ever imported from a client component —
- * Next.js substitutes NEXT_PUBLIC_* by literal text match, not at runtime.
+ * First name is canonical and the one .env.example documents; the unprefixed
+ * spelling is accepted so a host that dislikes NEXT_PUBLIC_ on a server-only
+ * value still works.
  */
-export function supabaseUrl(): string {
-  return read(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_URL,
-    "NEXT_PUBLIC_SUPABASE_URL",
+function read(names: readonly [string, string]): string {
+  for (const name of names) {
+    const value = fromEnv(name);
+    if (value) return value;
+  }
+
+  throw new Error(
+    `Missing ${names[0]}. Set it in your hosting provider's environment ` +
+      `variables (or copy .env.example to .env.local for local work). ` +
+      `The app cannot reach its database without it.`,
   );
 }
 
+export function supabaseUrl(): string {
+  return read(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"]);
+}
+
 export function supabasePublishableKey(): string {
-  return read(
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    process.env.SUPABASE_PUBLISHABLE_KEY,
+  return read([
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-  );
+    "SUPABASE_PUBLISHABLE_KEY",
+  ]);
 }
