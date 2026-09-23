@@ -13,13 +13,16 @@ export interface PosProduct {
 
 export function ProductGrid({
   products,
-  quantities,
-  onAdd,
+  selectedIds,
+  onToggle,
 }: {
   products: PosProduct[];
-  /** productId -> quantity already in the cart, for the corner badge. */
-  quantities: Record<string, number>;
-  onAdd: (product: PosProduct) => void;
+  /**
+   * Which products are in the order. Deliberately not the quantities: the
+   * grid picks *what* is being sold, the order panel decides *how many*.
+   */
+  selectedIds: ReadonlySet<string>;
+  onToggle: (product: PosProduct) => void;
 }) {
   if (products.length === 0) {
     return (
@@ -37,19 +40,22 @@ export function ProductGrid({
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
       {products.map((product) => {
-        const inCart = quantities[product.id] ?? 0;
+        const selected = selectedIds.has(product.id);
 
         return (
           <li key={product.id}>
             {/* The whole card is the button. At a counter you aim for the
-                picture, not a 24px "+" in its corner. */}
+                picture, not a 24px "+" in its corner.
+                aria-pressed, because this is a toggle: tapping again takes the
+                item back off the order rather than adding another one. */}
             <button
               type="button"
-              onClick={() => onAdd(product)}
+              aria-pressed={selected}
+              onClick={() => onToggle(product)}
               className={cn(
                 "group relative flex h-full w-full flex-col overflow-hidden rounded-card border text-left",
                 "transition-colors duration-150 touch-manipulation",
-                inCart > 0
+                selected
                   ? "border-leaf bg-mint"
                   : "border-brandline bg-white hover:border-brandline hover:bg-ivory",
               )}
@@ -72,11 +78,6 @@ export function ProductGrid({
                   </span>
                 )}
 
-                {inCart > 0 ? (
-                  <span className="tabular absolute right-2 top-2 inline-flex min-w-7 items-center justify-center rounded-full bg-leaf px-2 py-0.5 text-sm font-semibold text-white">
-                    {inCart}
-                  </span>
-                ) : null}
               </div>
 
               <div className="flex flex-1 flex-col justify-between gap-1 p-3">
@@ -88,9 +89,12 @@ export function ProductGrid({
                 </p>
               </div>
 
+              {/* aria-pressed already announces the state; this says what the
+                  next tap will do, which is the part a badge used to imply. */}
               <span className="sr-only">
-                Add {product.name} to the order
-                {inCart > 0 ? `, ${inCart} already added` : ""}
+                {selected
+                  ? `${product.name} is on the order. Tap to take it off.`
+                  : `Add ${product.name} to the order`}
               </span>
             </button>
           </li>

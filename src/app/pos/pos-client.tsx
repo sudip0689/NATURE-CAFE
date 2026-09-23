@@ -45,8 +45,15 @@ export function PosClient({
 
   const totals = useMemo(() => cartTotals(lines, discount), [lines, discount]);
 
-  const quantities = useMemo(
-    () => Object.fromEntries(lines.map((line) => [line.productId, line.quantity])),
+  /**
+   * What is on the order, not how much of it.
+   *
+   * The grid is a picker: one tap puts an item on the order, another takes it
+   * off. Quantity belongs to the order panel, where there is room for a
+   * stepper and a line total next to it.
+   */
+  const selectedIds = useMemo(
+    () => new Set(lines.map((line) => line.productId)),
     [lines],
   );
 
@@ -190,9 +197,17 @@ export function PosClient({
         <div className="flex-1 px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
           <ProductGrid
             products={visibleProducts}
-            quantities={quantities}
-            onAdd={(product) => {
-              dispatch({ type: "add", product });
+            selectedIds={selectedIds}
+            onToggle={(product) => {
+              // Tapping an item already on the order takes the whole line off,
+              // however many of it there are — it is a selection, not a
+              // counter. Purely local: nothing reaches the database until the
+              // cashier generates the bill.
+              dispatch(
+                selectedIds.has(product.id)
+                  ? { type: "remove", productId: product.id }
+                  : { type: "add", product },
+              );
               setBillingError(null);
             }}
           />
