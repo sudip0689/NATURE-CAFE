@@ -60,7 +60,12 @@ export function OrderPanel({
   const empty = lines.length === 0;
 
   return (
-    <div className="flex h-full flex-col">
+    // h-full works in the desktop aside, which has a definite height from the
+    // page's h-dvh row. In the phone sheet the parent is only max-height
+    // constrained, so height:100% has nothing to resolve against and the
+    // column fell back to content height — flex-1 + min-h-0 is what actually
+    // constrains it there. Both are set so one component suits both mounts.
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <header className="flex items-center justify-between gap-3 border-b border-brandline px-4 py-3">
         <h2 className="font-display text-lg font-semibold text-brandink">
           Current order
@@ -76,7 +81,13 @@ export function OrderPanel({
         )}
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* min-h-0 is load-bearing. A flex child defaults to min-height:auto,
+          which is its content height, so `flex-1 overflow-y-auto` alone will
+          not shrink and will not scroll — the list kept its full height and
+          pushed the footer past the bottom of the sheet instead. On a phone
+          that put the total and "Generate & Print" off-screen once an order
+          reached about five items, so the sale could not be completed. */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {empty ? (
           <p className="px-4 py-12 text-center text-brandmuted">
             Tap an item to start the order.
@@ -127,7 +138,9 @@ export function OrderPanel({
         )}
       </div>
 
-      <div className="border-t border-brandline bg-ivory">
+      {/* shrink-0: the totals and the pay button are the point of the panel.
+          If space runs short the item list scrolls — this never compresses. */}
+      <div className="shrink-0 border-t border-brandline bg-ivory">
         <div className="space-y-3 px-4 py-4">
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
