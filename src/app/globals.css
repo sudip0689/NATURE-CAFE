@@ -214,9 +214,14 @@ body {
     margin: 0;
   }
 
+  /* height:auto is the important half. The root layout sets h-full on <html>
+     and min-h-full on <body> for the screen; on paper those mean "at least one
+     whole page", so a 40mm receipt still emitted a second, empty sheet. */
   html,
   body {
     width: 58mm;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0;
     padding: 0;
     background: #fff;
@@ -227,23 +232,44 @@ body {
     display: none !important;
   }
 
-  /* The receipt route renders inside the app shell, whose <main> is padded
-     and centred for the screen. On 58mm paper that padding is wasted roll,
-     so the shell collapses to nothing and the receipt sits flush. */
-  main {
+  /* Every wrapper between <body> and the receipt.
+     The receipt renders inside the app shell, which is a `min-h-dvh` flex
+     column centred in a padded, max-width <main>, sitting in a bordered
+     preview card. All of that is screen furniture: on a roll it contributes a
+     full page of blank height, side padding that pushes the receipt off
+     centre, and a border that prints. :has() picks out exactly the ancestor
+     chain rather than guessing at class names. */
+  body > div,
+  main,
+  div:has(> .receipt),
+  div:has(.receipt) {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
     max-width: none !important;
+    width: auto !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
   }
 
   .receipt {
     width: 58mm;
     box-shadow: none;
     border: 0;
+    /* Nothing after the receipt may start a fresh sheet. */
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
-  /* A page break mid-receipt wastes a strip of paper on every sale. */
-  .receipt,
+  /* Only the rows are kept whole. `break-inside: avoid` on the receipt itself
+     was wrong: a long order is taller than one page, and telling the engine
+     not to split it makes it skip to a fresh page instead — which is the
+     other way this printed a blank sheet. The roll is continuous; the receipt
+     should simply flow down it. */
   .receipt-row {
     break-inside: avoid;
   }
