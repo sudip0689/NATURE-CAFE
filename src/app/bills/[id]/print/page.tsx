@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings";
 import { formatDate, formatTime } from "@/lib/datetime";
 import { buildUpiUri } from "@/lib/upi";
 import type { ReceiptData } from "@/lib/printing";
@@ -24,7 +25,7 @@ export default async function PrintReceiptPage({
   // Any signed-in user may reprint any bill — with two shared accounts there
   // is no per-user scoping left to apply, and a cashier reprinting a receipt
   // is the normal case the spec asks for.
-  const [{ data: bill }, { data: items }, { data: settings }] = await Promise.all([
+  const [{ data: bill }, { data: items }, settings] = await Promise.all([
     supabase
       .from("bills")
       .select(
@@ -37,7 +38,8 @@ export default async function PrintReceiptPage({
       .select("product_name, quantity, unit_price, line_total, created_at")
       .eq("bill_id", id)
       .order("created_at"),
-    supabase.from("settings").select("*").eq("id", 1).maybeSingle(),
+    // Shared with the layout's header via cache() — one fetch, not two.
+    getSettings(),
   ]);
 
   if (!bill) notFound();

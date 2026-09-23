@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getSessionUser, homeRouteFor } from "@/lib/auth";
+import { getSessionRole, homeRouteFor } from "@/lib/auth";
 import { enterManagement, openBilling } from "./actions";
 import {
   ArrowRight,
@@ -23,9 +23,11 @@ export const metadata = {
 const APP_VERSION = "v1.0.0";
 
 export default async function WelcomePage() {
-  // Someone already signed in has no business on this screen.
-  const user = await getSessionUser();
-  if (user) redirect(homeRouteFor(user.profile.role));
+  // Someone already signed in has no business on this screen. Read from the
+  // cookie, not the database — this screen shows no data of its own, so a
+  // profile lookup was a round trip spent on nothing for every visitor.
+  const role = await getSessionRole();
+  if (role) redirect(homeRouteFor(role));
 
   return (
     /*

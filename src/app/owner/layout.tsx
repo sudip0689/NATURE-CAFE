@@ -1,5 +1,5 @@
 import { requireOwner } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings";
 import { AppShell, OwnerBadge, ShellMenu } from "@/components/shell/app-shell";
 
 const MENU = [
@@ -21,14 +21,11 @@ const MENU = [
  * owns any header or container CSS of its own.
  */
 export default async function OwnerLayout({ children }: LayoutProps<"/owner">) {
-  const user = await requireOwner();
-
-  const supabase = await createClient();
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("cafe_name, tagline")
-    .eq("id", 1)
-    .maybeSingle();
+  // Together, not one after the other. The settings row does not depend on who
+  // is asking, so awaiting the guard first just put a round trip to Mumbai in
+  // front of another one. If the guard redirects, the settings promise is
+  // discarded — which costs nothing, because it was already in flight.
+  const [user, settings] = await Promise.all([requireOwner(), getSettings()]);
 
   const cafeName = settings?.cafe_name || "Nature Caffe";
 

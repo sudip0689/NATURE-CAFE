@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings";
 import { AppShell, ShellMenu } from "@/components/shell/app-shell";
 
 /**
@@ -10,15 +10,9 @@ import { AppShell, ShellMenu } from "@/components/shell/app-shell";
  * bounce you back to the till is worse than showing no tabs.
  */
 export default async function BillsLayout({ children }: LayoutProps<"/bills">) {
-  const user = await requireUser();
+  // Both at once — see the note in owner/layout.tsx.
+  const [user, settings] = await Promise.all([requireUser(), getSettings()]);
   const isOwner = user.profile.role === "owner";
-
-  const supabase = await createClient();
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("cafe_name")
-    .eq("id", 1)
-    .maybeSingle();
 
   return (
     <AppShell

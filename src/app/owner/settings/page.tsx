@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings";
 import { ErrorNote } from "@/components/ui/states";
 import { SettingsForm } from "./settings-form";
 import { PageHeader } from "@/components/shell/page";
@@ -6,12 +6,8 @@ import { PageHeader } from "@/components/shell/page";
 export const metadata = { title: "Settings · Nature Caffe" };
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const { data: settings } = await supabase
-    .from("settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
+  // Same row the layout's header already fetched this request.
+  const settings = await getSettings();
 
   return (
     <div className="mx-auto max-w-xl space-y-6">

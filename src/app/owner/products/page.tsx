@@ -18,10 +18,14 @@ export default async function ProductsPage({
   const [{ data: categories }, { data: rows }] = await Promise.all([
     supabase.from("categories").select("id, name").order("sort_order").order("name"),
     (() => {
+      // Capped like the bills list, and disclosed below when it bites. The
+      // till deliberately has no cap: an item missing from /pos cannot be
+      // sold, which is a worse failure than a long management page.
       let query = supabase
         .from("products")
         .select("id, name, price, image_url, is_active, categories(name)")
-        .order("name");
+        .order("name")
+        .limit(500);
 
       // Escape PostgREST's pattern wildcards so a stray % doesn't match everything.
       if (q.trim()) query = query.ilike("name", `%${q.trim().replace(/[%_]/g, "")}%`);
@@ -127,6 +131,7 @@ export default async function ProductsPage({
         <>
           <p className="text-sm text-brandmuted">
             {products.length === 1 ? "1 item" : `${products.length} items`}
+            {products.length === 500 ? " (first 500 — narrow the search)" : ""}
           </p>
           <ul className="space-y-3">
             {products.map((product) => (

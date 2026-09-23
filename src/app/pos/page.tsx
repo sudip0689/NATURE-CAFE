@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings";
 import { AppHeader, HeaderLink } from "@/components/shell/app-shell";
 import { EmptyState } from "@/components/ui/states";
 import { PosClient } from "./pos-client";
@@ -10,14 +11,17 @@ import type { PosProduct } from "./product-grid";
 export const metadata = { title: "Billing · Nature Caffe" };
 
 export default async function PosPage() {
-  const user = await requireUser();
   const supabase = await createClient();
 
   // Only active rows reach the till. RLS already hides inactive products from a
   // cashier; the filter keeps the owner's view of this screen identical to what
   // their staff see, rather than showing them items nobody else can sell.
-  const [{ data: products }, { data: categories }, { data: settings }] =
+  // The guard joins the same batch rather than gating it. Waiting for the
+  // profile before even asking for the menu meant the till opened two round
+  // trips slow, every time — and this is the screen that must open fastest.
+  const [user, { data: products }, { data: categories }, settings] =
     await Promise.all([
+      requireUser(),
       supabase
         .from("products")
         .select("id, name, price, image_url, category_id")
@@ -29,7 +33,7 @@ export default async function PosPage() {
         .eq("is_active", true)
         .order("sort_order")
         .order("name"),
-      supabase.from("settings").select("cafe_name").eq("id", 1).maybeSingle(),
+      getSettings(),
     ]);
 
   const menu: PosProduct[] = products ?? [];
