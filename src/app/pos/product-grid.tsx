@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMoneyCompact } from "@/lib/money";
+import { CheckIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 export interface PosProduct {
@@ -53,11 +54,14 @@ export function ProductGrid({
               aria-pressed={selected}
               onClick={() => onToggle(product)}
               className={cn(
-                "group relative flex h-full w-full flex-col overflow-hidden rounded-card border text-left",
-                "transition-colors duration-150 touch-manipulation",
+                "group relative flex h-full w-full flex-col overflow-hidden rounded-card text-left",
+                "transition-all duration-150 touch-manipulation",
                 selected
-                  ? "border-leaf bg-mint"
-                  : "border-brandline bg-white hover:border-brandline hover:bg-ivory",
+                  ? // Three signals at once, because one thin border was not
+                    // readable at a glance on a phone at counter distance: a
+                    // 2px leaf border, a tinted card, and lifted elevation.
+                    "border-2 border-leaf bg-mint shadow-[0_4px_14px_rgba(31,138,76,0.22)]"
+                  : "border border-brandline bg-white hover:bg-ivory",
               )}
             >
               <div className="relative aspect-[4/3] w-full overflow-hidden bg-mint">
@@ -78,6 +82,13 @@ export function ProductGrid({
                   </span>
                 )}
 
+                {/* The tick sits on the image, top-right, in a filled circle
+                    with a white ring so it holds up over a dark photo. */}
+                {selected ? (
+                  <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-forest text-white shadow-[0_1px_4px_rgba(0,0,0,0.25)] ring-2 ring-white">
+                    <CheckIcon className="size-4" />
+                  </span>
+                ) : null}
               </div>
 
               <div className="flex flex-1 flex-col justify-between gap-1 p-3">

@@ -10,6 +10,7 @@ import { generateBill } from "./actions";
 import { validateMobile } from "@/lib/validation";
 import type { PaymentMethod } from "@/lib/supabase/types";
 import { cn } from "@/lib/cn";
+import { CartIcon, ChevronRight } from "@/components/icons";
 import { OrderPanel } from "./order-panel";
 import { ProductGrid, type PosProduct } from "./product-grid";
 
@@ -221,19 +222,44 @@ export function PosClient({
 
       {/* Phone: a sticky summary that opens the order as a sheet. */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-brandline bg-white p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-sheet lg:hidden">
+        {/* An empty cart keeps the bar in place, greyed and inert, rather
+            than removing it: the grid would jump under the cashier's thumb
+            the instant the first item went on. */}
         <button
           type="button"
+          disabled={totals.itemCount === 0}
           onClick={() => setDrawerOpen(true)}
-          className="flex min-h-touch-lg w-full items-center justify-between rounded-control bg-forest px-5 text-white touch-manipulation"
+          className={cn(
+            "flex min-h-touch-lg w-full items-center gap-3 rounded-2xl px-4 text-left",
+            "touch-manipulation transition-colors",
+            totals.itemCount === 0
+              ? "border border-dashed border-brandline bg-ivory text-brandmuted"
+              : "bg-forest text-white shadow-[0_4px_16px_rgba(14,90,53,0.3)] active:bg-leaf",
+          )}
         >
-          <span className="font-medium">
+          <CartIcon
+            className={cn(
+              "size-5 shrink-0",
+              totals.itemCount === 0 ? "text-brandmuted" : "text-white/90",
+            )}
+          />
+
+          <span className="min-w-0 flex-1 truncate font-semibold">
             {totals.itemCount === 0
-              ? "No items yet"
-              : `${totals.itemCount} ${totals.itemCount === 1 ? "item" : "items"}`}
+              ? "Tap an item to start"
+              : `View Order · ${totals.itemCount} ${
+                  totals.itemCount === 1 ? "Item" : "Items"
+                }`}
           </span>
-          <span className="tabular text-lg font-semibold">
-            {formatMoneyCompact(toAmountString(totals.totalPaisa))}
-          </span>
+
+          {totals.itemCount === 0 ? null : (
+            <>
+              <span className="tabular shrink-0 text-lg font-bold">
+                {formatMoneyCompact(toAmountString(totals.totalPaisa))}
+              </span>
+              <ChevronRight className="size-5 shrink-0 text-white/80" />
+            </>
+          )}
         </button>
       </div>
 
