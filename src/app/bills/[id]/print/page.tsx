@@ -98,29 +98,30 @@ export default async function PrintReceiptPage({
   };
 
   return (
-    <main className="mx-auto w-full max-w-md px-5 py-8">
+    // A <div>, not a <main> — the shell already renders one around this.
+    <div className="mx-auto w-full max-w-md">
       <div className="no-print mb-6 flex items-center justify-between gap-3">
         <Link
           href={`/bills/${bill.id}`}
-          className="text-sm text-ink-500 hover:text-ink-900"
+          className="text-sm text-brandmuted hover:text-brandink"
         >
           ← Bill
         </Link>
         <Link
           href="/pos"
-          className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-ink-700 hover:bg-cream-200"
+          className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-brandink hover:bg-mint"
         >
           Back to till
         </Link>
       </div>
 
-      <p className="no-print mb-3 text-center text-sm text-ink-500">
+      <p className="no-print mb-3 text-center text-sm text-brandmuted">
         Preview at actual size — 58&nbsp;mm
       </p>
 
       {/* The preview and the print output are the same element. */}
       <div className="flex justify-center">
-        <div className="rounded-card border border-cream-300 shadow-card">
+        <div className="rounded-card border border-brandline shadow-card">
           <Receipt data={data} qrSvg={qrSvg} qrImageUrl={settings?.upi_qr_url} />
         </div>
       </div>
@@ -129,7 +130,7 @@ export default async function PrintReceiptPage({
         <PrintButton receipt={data} />
 
         {!upiUri && !settings?.upi_qr_url ? (
-          <p className="mt-3 text-center text-sm text-ink-500">
+          <p className="mt-3 text-center text-sm text-brandmuted">
             No UPI ID configured, so the receipt prints without a QR. Add one in{" "}
             <Link href="/owner/settings" className="underline">
               Settings
@@ -137,12 +138,12 @@ export default async function PrintReceiptPage({
             .
           </p>
         ) : (
-          <p className="mt-3 text-center text-sm text-ink-500">
+          <p className="mt-3 text-center text-sm text-brandmuted">
             The QR shows the customer where to pay. It is not proof that they
             did — confirm payment yourself before handing over the receipt.
           </p>
         )}
       </div>
-    </main>
+    </div>
   );
 }

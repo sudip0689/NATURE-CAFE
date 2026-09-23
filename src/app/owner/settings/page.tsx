@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ErrorNote } from "@/components/ui/states";
 import { SettingsForm } from "./settings-form";
+import { PageHeader } from "@/components/shell/page";
 
 export const metadata = { title: "Settings · Nature Caffe" };
 
@@ -14,14 +15,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink-900">
-          Settings
-        </h1>
-        <p className="mt-1 text-ink-500">
-          Café identity, UPI, and what prints on the receipt.
-        </p>
-      </header>
+      <PageHeader
+        title="Settings"
+        description="Café identity, UPI, and what prints on the receipt."
+      />
 
       {settings ? (
         <SettingsForm settings={settings} />

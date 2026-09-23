@@ -27,7 +27,7 @@ export function Field({
     <div className="space-y-1.5">
       <label
         htmlFor={fieldId}
-        className="block text-sm font-medium text-ink-700"
+        className="block text-sm font-medium text-brandink"
       >
         {label}
       </label>
@@ -37,12 +37,12 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cn(
-          "w-full min-h-touch rounded-control border bg-cream-50 px-4",
-          "text-base text-ink-900 placeholder:text-ink-400",
+          "w-full min-h-touch rounded-control border bg-white px-4",
+          "text-base text-brandink placeholder:text-brandmuted",
           "transition-colors duration-150",
           error
             ? "border-alert-500 focus:border-alert-600"
-            : "border-cream-300 focus:border-bean-500",
+            : "border-brandline focus:border-leaf",
           "focus:outline-none",
           className,
         )}
@@ -60,7 +60,7 @@ export function Field({
           {error}
         </p>
       ) : hint ? (
-        <p id={`${fieldId}-hint`} className="text-sm text-ink-500">
+        <p id={`${fieldId}-hint`} className="text-sm text-brandmuted">
           {hint}
         </p>
       ) : null}

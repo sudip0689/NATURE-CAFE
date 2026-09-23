@@ -151,14 +151,14 @@ export function PosClient({
   return (
     <div className="flex flex-1 flex-col lg:min-h-0 lg:flex-row">
       <section className="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">
-        <div className="sticky top-0 z-10 space-y-3 border-b border-cream-300 bg-cream-100/95 px-4 py-3 backdrop-blur">
+        <div className="sticky top-0 z-10 space-y-3 border-b border-brandline bg-ivory/95 px-4 py-3 backdrop-blur">
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search the menu…"
             aria-label="Search the menu"
-            className="w-full min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 placeholder:text-ink-400 focus:border-bean-500 focus:outline-none"
+            className="w-full min-h-touch rounded-control border border-brandline bg-white px-4 text-base text-brandink placeholder:text-brandmuted focus:border-leaf focus:outline-none"
           />
 
           <div
@@ -184,7 +184,10 @@ export function PosClient({
           </div>
         </div>
 
-        <div className="flex-1 px-4 py-4 pb-28 lg:pb-6">
+        {/* Clears the pinned cart bar (81px) plus the home indicator. The bar
+            is fixed, so it contributes no height — without this the last row
+            of the menu sits underneath it. */}
+        <div className="flex-1 px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
           <ProductGrid
             products={visibleProducts}
             quantities={quantities}
@@ -197,16 +200,16 @@ export function PosClient({
       </section>
 
       {/* Counter screen: the order sits permanently beside the menu. */}
-      <aside className="hidden w-[26rem] shrink-0 border-l border-cream-300 bg-cream-50 lg:block lg:overflow-hidden">
+      <aside className="hidden w-[26rem] shrink-0 border-l border-brandline bg-white lg:block lg:overflow-hidden">
         <OrderPanel {...panelProps} />
       </aside>
 
       {/* Phone: a sticky summary that opens the order as a sheet. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-cream-300 bg-cream-50 p-3 shadow-sheet lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-brandline bg-white p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-sheet lg:hidden">
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex min-h-touch-lg w-full items-center justify-between rounded-control bg-bean-600 px-5 text-cream-50 touch-manipulation"
+          className="flex min-h-touch-lg w-full items-center justify-between rounded-control bg-forest px-5 text-white touch-manipulation"
         >
           <span className="font-medium">
             {totals.itemCount === 0
@@ -225,16 +228,16 @@ export function PosClient({
             type="button"
             aria-label="Close order"
             onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 bg-ink-900/40"
+            className="absolute inset-0 bg-brandink/40"
           />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Current order"
-            className="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-sheet bg-cream-50 shadow-sheet"
+            className="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-sheet bg-white shadow-sheet"
           >
             <div className="flex justify-center pt-3" aria-hidden="true">
-              <span className="h-1 w-10 rounded-full bg-cream-300" />
+              <span className="h-1 w-10 rounded-full bg-brandline" />
             </div>
             <div className="min-h-0 flex-1">
               <OrderPanel {...panelProps} />
@@ -244,38 +247,38 @@ export function PosClient({
       ) : null}
 
       {completedBill ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink-900/50 p-4 sm:items-center">
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-brandink/50 p-4 sm:items-center">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="bill-done-heading"
-            className="w-full max-w-sm rounded-sheet bg-cream-50 p-6 text-center shadow-sheet"
+            className="w-full max-w-sm rounded-sheet bg-white p-6 text-center shadow-sheet"
           >
             {/* The only place green appears at full strength: money landed. */}
             <div
               aria-hidden="true"
-              className="mx-auto flex size-14 items-center justify-center rounded-full bg-paid-50 text-2xl text-paid-600"
+              className="mx-auto flex size-14 items-center justify-center rounded-full bg-mint text-2xl text-leaf"
             >
               ✓
             </div>
 
             <h2
               id="bill-done-heading"
-              className="mt-4 font-display text-xl font-semibold text-ink-900"
+              className="mt-4 font-display text-xl font-semibold text-brandink"
             >
               Bill saved
             </h2>
-            <p className="tabular mt-1 text-sm text-ink-500">
+            <p className="tabular mt-1 text-sm text-brandmuted">
               {completedBill.number}
             </p>
-            <p className="tabular mt-3 text-3xl font-semibold leading-none text-bean-800">
+            <p className="tabular mt-3 text-3xl font-semibold leading-none text-forest">
               {formatMoney(completedBill.total)}
             </p>
 
             <div className="mt-6 space-y-2">
               <Link
                 href={`/bills/${completedBill.id}/print`}
-                className="inline-flex min-h-touch-lg w-full items-center justify-center rounded-control border border-cream-300 bg-cream-50 px-5 text-base font-medium text-ink-900 hover:bg-cream-100"
+                className="inline-flex min-h-touch-lg w-full items-center justify-center rounded-control border border-brandline bg-white px-5 text-base font-medium text-brandink hover:bg-ivory"
               >
                 Print receipt
               </Link>
@@ -310,8 +313,8 @@ function CategoryTab({
       className={cn(
         "min-h-touch shrink-0 rounded-full border px-4 text-base font-medium transition-colors touch-manipulation",
         active
-          ? "border-bean-600 bg-bean-600 text-cream-50"
-          : "border-cream-300 bg-cream-50 text-ink-700 hover:bg-cream-200",
+          ? "border-forest bg-forest text-white"
+          : "border-brandline bg-white text-brandink hover:bg-mint",
       )}
     >
       {children}

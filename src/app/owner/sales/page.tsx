@@ -1,13 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/money";
-import {
-  kolkataDayAfter,
-  kolkataDayStart,
-  todayInKolkata,
-} from "@/lib/datetime";
-import { StatCard } from "@/components/ui/card";
+import { kolkataDayAfter, kolkataDayStart, todayInKolkata } from "@/lib/datetime";
 import { BillList, type BillListRow } from "@/components/bill-list";
 import { EmptyState } from "@/components/ui/states";
+import { PageHeader, Section } from "@/components/shell/page";
+import { DateRangeForm } from "@/components/shell/date-range-form";
+import { StatTile } from "@/components/shell/stat-tile";
 
 export const metadata = { title: "Sales · Nature Caffe" };
 
@@ -19,8 +17,7 @@ export default async function SalesPage({
   const params = await searchParams;
   const today = todayInKolkata();
 
-  // Defaults to today, which is the question an owner asks ninety-nine times
-  // out of a hundred.
+  // Defaults to today — the question an owner asks ninety-nine times in a hundred.
   const from = params.from || today;
   const to = params.to || today;
 
@@ -43,78 +40,36 @@ export default async function SalesPage({
   const billCount = summary?.bill_count ?? 0;
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink-900">
-          Sales
-        </h1>
-        <p className="mt-1 text-ink-500">
-          Totals for a date range, split by how the customer paid.
-        </p>
-      </header>
+    <>
+      <PageHeader title="Sales" description="Totals for a date range, by payment." />
 
-      <form className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1.5">
-          <label htmlFor="from" className="block text-sm font-medium text-ink-700">
-            From
-          </label>
-          <input
-            id="from"
-            name="from"
-            type="date"
-            defaultValue={from}
-            max={today}
-            className="min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 focus:border-bean-500 focus:outline-none"
-          />
-        </div>
+      <DateRangeForm from={from} to={to} max={today} />
 
-        <div className="space-y-1.5">
-          <label htmlFor="to" className="block text-sm font-medium text-ink-700">
-            To
-          </label>
-          <input
-            id="to"
-            name="to"
-            type="date"
-            defaultValue={to}
-            max={today}
-            className="min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 focus:border-bean-500 focus:outline-none"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="inline-flex min-h-touch items-center rounded-control border border-cream-300 bg-cream-50 px-5 text-base font-medium text-ink-900 hover:bg-cream-100"
-        >
-          Show
-        </button>
-      </form>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
+      {/* Total is the headline and spans the row; the rest are equals below. */}
+      <div className="mb-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <StatTile
+          className="col-span-2"
+          tone="green"
           label="Total sales"
           value={formatMoney(summary?.total_sales ?? "0")}
-          tone="paid"
+          note={billCount === 0 ? "No sales in this range" : `${billCount} bills`}
         />
-        <StatCard label="Bills" value={String(billCount)} />
-        <StatCard label="Cash" value={formatMoney(summary?.cash_sales ?? "0")} />
-        <StatCard label="UPI" value={formatMoney(summary?.upi_sales ?? "0")} />
-        <StatCard label="Card" value={formatMoney(summary?.card_sales ?? "0")} />
+        <StatTile label="Cash" value={formatMoney(summary?.cash_sales ?? "0")} />
+        <StatTile label="UPI" value={formatMoney(summary?.upi_sales ?? "0")} />
+        <StatTile label="Card" value={formatMoney(summary?.card_sales ?? "0")} />
+        <StatTile label="Bills" value={String(billCount)} />
       </div>
 
-      {bills.length === 0 ? (
-        <EmptyState
-          title="No sales in this range"
-          hint="Pick a different date range, or wait for the counter to ring one up."
-        />
-      ) : (
-        <section className="space-y-3">
-          <h2 className="font-display text-lg font-semibold text-ink-900">
-            Bills in this range
-          </h2>
+      <Section title={bills.length ? `Bills (${bills.length})` : undefined}>
+        {bills.length === 0 ? (
+          <EmptyState
+            title="No sales in this range"
+            hint="Pick a different date range, or wait for the counter to ring one up."
+          />
+        ) : (
           <BillList bills={bills} />
-        </section>
-      )}
-    </div>
+        )}
+      </Section>
+    </>
   );
 }

@@ -61,15 +61,15 @@ export function OrderPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-cream-300 px-4 py-3">
-        <h2 className="font-display text-lg font-semibold text-ink-900">
+      <header className="flex items-center justify-between gap-3 border-b border-brandline px-4 py-3">
+        <h2 className="font-display text-lg font-semibold text-brandink">
           Current order
         </h2>
         {empty ? null : (
           <button
             type="button"
             onClick={onClear}
-            className="min-h-touch rounded-control px-3 text-sm font-medium text-ink-500 hover:bg-cream-200 hover:text-alert-600"
+            className="min-h-touch rounded-control px-3 text-sm font-medium text-brandmuted hover:bg-mint hover:text-alert-600"
           >
             Clear
           </button>
@@ -78,16 +78,16 @@ export function OrderPanel({
 
       <div className="flex-1 overflow-y-auto">
         {empty ? (
-          <p className="px-4 py-12 text-center text-ink-500">
+          <p className="px-4 py-12 text-center text-brandmuted">
             Tap an item to start the order.
           </p>
         ) : (
-          <ul className="divide-y divide-cream-200">
+          <ul className="divide-y divide-mint">
             {lines.map((line) => (
               <li key={line.productId} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-ink-900">{line.name}</p>
-                  <p className="tabular mt-0.5 text-sm text-ink-500">
+                  <p className="truncate font-medium text-brandink">{line.name}</p>
+                  <p className="tabular mt-0.5 text-sm text-brandmuted">
                     {line.quantity} × {formatMoneyCompact(line.unitPrice)}
                   </p>
                 </div>
@@ -104,7 +104,7 @@ export function OrderPanel({
                     −
                   </StepperButton>
 
-                  <span className="tabular w-8 text-center text-base font-semibold text-ink-900">
+                  <span className="tabular w-8 text-center text-base font-semibold text-brandink">
                     {line.quantity}
                   </span>
 
@@ -116,7 +116,7 @@ export function OrderPanel({
                   </StepperButton>
                 </div>
 
-                <p className="tabular w-20 shrink-0 text-right font-semibold text-ink-900">
+                <p className="tabular w-20 shrink-0 text-right font-semibold text-brandink">
                   {formatMoneyCompact(
                     toAmountString(lineTotalPaisa(line.unitPrice, line.quantity)),
                   )}
@@ -127,21 +127,21 @@ export function OrderPanel({
         )}
       </div>
 
-      <div className="border-t border-cream-300 bg-cream-100">
+      <div className="border-t border-brandline bg-ivory">
         <div className="space-y-3 px-4 py-4">
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className="block text-sm font-medium text-ink-700">Customer</span>
+              <span className="block text-sm font-medium text-brandink">Customer</span>
               <input
                 value={customerName}
                 onChange={(event) => onCustomerNameChange(event.target.value)}
                 placeholder="Walk-in Customer"
-                className="w-full min-h-touch rounded-control border border-cream-300 bg-cream-50 px-3 text-base text-ink-900 placeholder:text-ink-400 focus:border-bean-500 focus:outline-none"
+                className="w-full min-h-touch rounded-control border border-brandline bg-white px-3 text-base text-brandink placeholder:text-brandmuted focus:border-leaf focus:outline-none"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="block text-sm font-medium text-ink-700">Mobile</span>
+              <span className="block text-sm font-medium text-brandink">Mobile</span>
               <input
                 value={customerMobile}
                 onChange={(event) => onCustomerMobileChange(event.target.value)}
@@ -149,10 +149,10 @@ export function OrderPanel({
                 placeholder="Optional"
                 aria-invalid={mobileError ? true : undefined}
                 className={cn(
-                  "w-full min-h-touch rounded-control border bg-cream-50 px-3 text-base text-ink-900 placeholder:text-ink-400 focus:outline-none",
+                  "w-full min-h-touch rounded-control border bg-white px-3 text-base text-brandink placeholder:text-brandmuted focus:outline-none",
                   mobileError
                     ? "border-alert-500 focus:border-alert-600"
-                    : "border-cream-300 focus:border-bean-500",
+                    : "border-brandline focus:border-leaf",
                 )}
               />
             </label>
@@ -165,7 +165,7 @@ export function OrderPanel({
           ) : null}
 
           <div className="space-y-1">
-            <span className="block text-sm font-medium text-ink-700">Payment</span>
+            <span className="block text-sm font-medium text-brandink">Payment</span>
             {/* Radio group, not a dropdown: three options the cashier hits
                 without a second tap to open anything. */}
             <div role="radiogroup" aria-label="Payment method" className="flex gap-2">
@@ -181,8 +181,8 @@ export function OrderPanel({
                     className={cn(
                       "min-h-touch flex-1 rounded-control border text-base font-medium transition-colors touch-manipulation",
                       selected
-                        ? "border-bean-600 bg-bean-600 text-cream-50"
-                        : "border-cream-300 bg-cream-50 text-ink-700 hover:bg-cream-200",
+                        ? "border-forest bg-forest text-white"
+                        : "border-brandline bg-white text-brandink hover:bg-mint",
                     )}
                   >
                     {method.label}
@@ -192,11 +192,11 @@ export function OrderPanel({
             </div>
           </div>
 
-          <dl className="space-y-1.5 border-t border-cream-300 pt-3 text-base">
+          <dl className="space-y-1.5 border-t border-brandline pt-3 text-base">
             <Row label="Subtotal" value={formatMoney(toAmountString(totals.subtotalPaisa))} />
 
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-ink-700">Discount</dt>
+              <dt className="text-brandink">Discount</dt>
               <dd>
                 <input
                   value={discount}
@@ -204,15 +204,15 @@ export function OrderPanel({
                   inputMode="decimal"
                   placeholder="0"
                   aria-label="Discount in rupees"
-                  className="tabular w-24 min-h-touch rounded-control border border-cream-300 bg-cream-50 px-3 text-right text-base text-ink-900 focus:border-bean-500 focus:outline-none"
+                  className="tabular w-24 min-h-touch rounded-control border border-brandline bg-white px-3 text-right text-base text-brandink focus:border-leaf focus:outline-none"
                 />
               </dd>
             </div>
 
-            <div className="flex items-baseline justify-between gap-3 border-t border-cream-300 pt-3">
-              <dt className="font-display text-lg font-semibold text-ink-900">Total</dt>
+            <div className="flex items-baseline justify-between gap-3 border-t border-brandline pt-3">
+              <dt className="font-display text-lg font-semibold text-brandink">Total</dt>
               {/* The one number that must never be misread. */}
-              <dd className="tabular text-3xl font-semibold leading-none text-bean-800">
+              <dd className="tabular text-3xl font-semibold leading-none text-forest">
                 {formatMoney(toAmountString(totals.totalPaisa))}
               </dd>
             </div>
@@ -242,8 +242,8 @@ export function OrderPanel({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-ink-700">{label}</dt>
-      <dd className="tabular font-medium text-ink-900">{value}</dd>
+      <dt className="text-brandink">{label}</dt>
+      <dd className="tabular font-medium text-brandink">{value}</dd>
     </div>
   );
 }
@@ -262,7 +262,7 @@ function StepperButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex size-11 items-center justify-center rounded-control border border-cream-300 bg-cream-50 text-xl font-semibold text-ink-900 transition-colors hover:bg-cream-200 touch-manipulation"
+      className="flex size-11 items-center justify-center rounded-control border border-brandline bg-white text-xl font-semibold text-brandink transition-colors hover:bg-mint touch-manipulation"
     >
       {children}
     </button>

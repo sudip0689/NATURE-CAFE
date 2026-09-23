@@ -27,7 +27,7 @@ export function SelectField({
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={fieldId} className="block text-sm font-medium text-ink-700">
+      <label htmlFor={fieldId} className="block text-sm font-medium text-brandink">
         {label}
       </label>
 
@@ -36,11 +36,11 @@ export function SelectField({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${fieldId}-error` : undefined}
         className={cn(
-          "w-full min-h-touch rounded-control border bg-cream-50 px-4",
-          "text-base text-ink-900 transition-colors duration-150 focus:outline-none",
+          "w-full min-h-touch rounded-control border bg-white px-4",
+          "text-base text-brandink transition-colors duration-150 focus:outline-none",
           error
             ? "border-alert-500 focus:border-alert-600"
-            : "border-cream-300 focus:border-bean-500",
+            : "border-brandline focus:border-leaf",
           className,
         )}
         {...props}

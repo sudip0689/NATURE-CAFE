@@ -23,11 +23,11 @@ export function ProductGrid({
 }) {
   if (products.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-cream-300 px-6 py-16 text-center">
-        <p className="font-display text-lg font-semibold text-ink-900">
+      <div className="rounded-card border border-dashed border-brandline px-6 py-16 text-center">
+        <p className="font-display text-lg font-semibold text-brandink">
           Nothing here
         </p>
-        <p className="mt-1 text-ink-500">
+        <p className="mt-1 text-brandmuted">
           Try another search, or a different category.
         </p>
       </div>
@@ -50,11 +50,11 @@ export function ProductGrid({
                 "group relative flex h-full w-full flex-col overflow-hidden rounded-card border text-left",
                 "transition-colors duration-150 touch-manipulation",
                 inCart > 0
-                  ? "border-bean-500 bg-bean-50"
-                  : "border-cream-300 bg-cream-50 hover:border-bean-300 hover:bg-cream-100",
+                  ? "border-leaf bg-mint"
+                  : "border-brandline bg-white hover:border-brandline hover:bg-ivory",
               )}
             >
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-bean-100">
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-mint">
                 {product.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -66,24 +66,24 @@ export function ProductGrid({
                 ) : (
                   <span
                     aria-hidden="true"
-                    className="flex size-full items-center justify-center font-display text-3xl font-semibold text-bean-400"
+                    className="flex size-full items-center justify-center font-display text-3xl font-semibold text-caramel"
                   >
                     {product.name.slice(0, 1).toUpperCase()}
                   </span>
                 )}
 
                 {inCart > 0 ? (
-                  <span className="tabular absolute right-2 top-2 inline-flex min-w-7 items-center justify-center rounded-full bg-bean-700 px-2 py-0.5 text-sm font-semibold text-cream-50">
+                  <span className="tabular absolute right-2 top-2 inline-flex min-w-7 items-center justify-center rounded-full bg-leaf px-2 py-0.5 text-sm font-semibold text-white">
                     {inCart}
                   </span>
                 ) : null}
               </div>
 
               <div className="flex flex-1 flex-col justify-between gap-1 p-3">
-                <p className="line-clamp-2 font-medium leading-snug text-ink-900">
+                <p className="line-clamp-2 font-medium leading-snug text-brandink">
                   {product.name}
                 </p>
-                <p className="tabular text-lg font-semibold text-bean-800">
+                <p className="tabular text-lg font-semibold text-forest">
                   {formatMoneyCompact(product.price)}
                 </p>
               </div>

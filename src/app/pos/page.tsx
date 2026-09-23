@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppHeader, HeaderLink } from "@/components/shell/app-shell";
 import { EmptyState } from "@/components/ui/states";
 import { PosClient } from "./pos-client";
 import type { PosProduct } from "./product-grid";
@@ -37,40 +37,20 @@ export default async function PosPage() {
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cream-300 bg-cream-50 px-4 py-3">
-        <div className="flex items-baseline gap-3">
-          <span className="font-display text-xl font-semibold tracking-[-0.02em] text-bean-800">
-            {settings?.cafe_name || "Nature Caffe"}
-          </span>
-          <span className="text-xs uppercase tracking-[0.12em] text-ink-400">
-            Billing
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <span className="hidden px-2 text-sm text-ink-500 sm:inline">
-            {user.profile.full_name}
-          </span>
-          <Link
-            href="/bills"
-            className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-ink-700 hover:bg-cream-200"
-          >
-            Bills
-          </Link>
-          {isOwner ? (
-            <Link
-              href="/owner"
-              className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-ink-700 hover:bg-cream-200"
-            >
-              Dashboard
-            </Link>
-          ) : null}
-          <SignOutButton />
-        </div>
-      </header>
+      <AppHeader
+        cafeName={settings?.cafe_name || "Nature Caffe"}
+        eyebrow="Billing"
+        wide
+        headerExtra={
+          <>
+            <HeaderLink href="/bills">Bills</HeaderLink>
+            {isOwner ? <HeaderLink href="/owner">Manage</HeaderLink> : null}
+          </>
+        }
+      />
 
       {menu.length === 0 ? (
-        <div className="mx-auto w-full max-w-lg px-5 py-16">
+        <div className="mx-auto w-full max-w-app px-4 py-10 sm:px-5">
           <EmptyState
             title="The menu is empty"
             hint={
@@ -82,7 +62,7 @@ export default async function PosPage() {
               isOwner ? (
                 <Link
                   href="/owner/products/new"
-                  className="inline-flex min-h-touch items-center rounded-control bg-bean-600 px-5 text-base font-medium text-cream-50 hover:bg-bean-700"
+                  className="inline-flex min-h-touch items-center rounded-control bg-forest px-5 text-base font-medium text-white hover:bg-leaf"
                 >
                   Add item
                 </Link>

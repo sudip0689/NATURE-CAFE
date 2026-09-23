@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/ui/states";
 import { ProductRow, type ProductRowData } from "./product-row";
+import { HeaderAction, PageHeader } from "@/components/shell/page";
 
 export const metadata = { title: "Products · Nature Caffe" };
 
@@ -46,62 +47,48 @@ export default async function ProductsPage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink-900">
-            Products
-          </h1>
-          <p className="mt-1 text-ink-500">
-            Prices set here are the only prices the till can charge.
-          </p>
-        </div>
-        <Link
-          href="/owner/products/new"
-          className="inline-flex min-h-touch items-center rounded-control bg-bean-600 px-5 text-base font-medium text-cream-50 hover:bg-bean-700"
-        >
-          Add item
-        </Link>
-      </header>
+      <PageHeader
+        title="Food Items"
+        description="Prices set here are the only prices the till can charge."
+        action={<HeaderAction href="/owner/products/new">+ Add</HeaderAction>}
+      />
 
-      {/* A plain GET form: filtering survives a reload and is linkable, and it
-          needs no JavaScript at all. */}
-      <form className="flex flex-wrap items-end gap-3" role="search">
-        <div className="min-w-[12rem] flex-1 space-y-1.5">
-          <label htmlFor="q" className="block text-sm font-medium text-ink-700">
+      {/* Plain GET form: filtering survives a reload, is linkable, no JS. */}
+      <form className="mb-4 flex flex-wrap items-end gap-2" role="search">
+        <label className="min-w-0 flex-1">
+          <span className="mb-1 block text-meta font-medium text-brandmuted">
             Search
-          </label>
+          </span>
           <input
-            id="q"
             name="q"
             type="search"
             defaultValue={q}
             placeholder="Chicken Roll"
-            className="w-full min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 placeholder:text-ink-400 focus:border-bean-500 focus:outline-none"
+            className="h-11 w-full rounded-xl border border-brandline bg-white px-3 text-[0.85rem] text-brandink placeholder:text-brandmuted/60 focus:border-leaf focus:outline-none"
           />
-        </div>
+        </label>
 
-        <div className="min-w-[10rem] space-y-1.5">
-          <label htmlFor="category" className="block text-sm font-medium text-ink-700">
+        <label className="min-w-0 flex-1 min-[420px]:max-w-[9rem]">
+          <span className="mb-1 block text-meta font-medium text-brandmuted">
             Category
-          </label>
+          </span>
           <select
-            id="category"
             name="category"
             defaultValue={category}
-            className="w-full min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 focus:border-bean-500 focus:outline-none"
+            className="h-11 w-full rounded-xl border border-brandline bg-white px-2 text-[0.85rem] text-brandink focus:border-leaf focus:outline-none"
           >
-            <option value="">All categories</option>
+            <option value="">All</option>
             {(categories ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
           </select>
-        </div>
+        </label>
 
         <button
           type="submit"
-          className="inline-flex min-h-touch items-center rounded-control border border-cream-300 bg-cream-50 px-5 text-base font-medium text-ink-900 hover:bg-cream-100"
+          className="h-11 shrink-0 rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors hover:bg-leaf"
         >
           Filter
         </button>
@@ -109,7 +96,7 @@ export default async function ProductsPage({
         {filtering ? (
           <Link
             href="/owner/products"
-            className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-ink-700 hover:bg-cream-200"
+            className="flex h-11 shrink-0 items-center rounded-full border border-brandline px-4 text-sm font-medium text-brandmuted transition-colors hover:bg-mint hover:text-forest"
           >
             Clear
           </Link>
@@ -129,7 +116,7 @@ export default async function ProductsPage({
             action={
               <Link
                 href="/owner/products/new"
-                className="inline-flex min-h-touch items-center rounded-control bg-bean-600 px-5 text-base font-medium text-cream-50 hover:bg-bean-700"
+                className="inline-flex min-h-touch items-center rounded-control bg-forest px-5 text-base font-medium text-white hover:bg-leaf"
               >
                 Add item
               </Link>
@@ -138,7 +125,7 @@ export default async function ProductsPage({
         )
       ) : (
         <>
-          <p className="text-sm text-ink-500">
+          <p className="text-sm text-brandmuted">
             {products.length === 1 ? "1 item" : `${products.length} items`}
           </p>
           <ul className="space-y-3">

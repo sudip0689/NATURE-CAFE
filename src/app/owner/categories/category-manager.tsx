@@ -23,7 +23,7 @@ export function CategoryManager({ categories }: { categories: CategoryRowData[] 
       <Card className="p-5">
         <form action={formAction} className="flex flex-wrap items-end gap-3">
           <div className="min-w-[14rem] flex-1 space-y-1.5">
-            <label htmlFor="name" className="block text-sm font-medium text-ink-700">
+            <label htmlFor="name" className="block text-sm font-medium text-brandink">
               New category
             </label>
             <input
@@ -32,7 +32,7 @@ export function CategoryManager({ categories }: { categories: CategoryRowData[] 
               required
               maxLength={40}
               placeholder="Desserts"
-              className="w-full min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 placeholder:text-ink-400 focus:border-bean-500 focus:outline-none"
+              className="w-full min-h-touch rounded-control border border-brandline bg-white px-4 text-base text-brandink placeholder:text-brandmuted focus:border-leaf focus:outline-none"
             />
           </div>
           <Button type="submit" pending={pending} pendingLabel="Adding…">
@@ -79,10 +79,10 @@ function CategoryRow({ category }: { category: CategoryRowData }) {
             defaultValue={category.name}
             maxLength={40}
             aria-label={`Name of ${category.name}`}
-            className="min-w-[10rem] flex-1 min-h-touch rounded-control border border-transparent bg-transparent px-3 text-base font-medium text-ink-900 hover:border-cream-300 focus:border-bean-500 focus:bg-cream-50 focus:outline-none"
+            className="min-w-[10rem] flex-1 min-h-touch rounded-control border border-transparent bg-transparent px-3 text-base font-medium text-brandink hover:border-brandline focus:border-leaf focus:bg-white focus:outline-none"
           />
 
-          <span className="text-sm text-ink-500">
+          <span className="text-sm text-brandmuted">
             {category.itemCount === 1 ? "1 item" : `${category.itemCount} items`}
           </span>
 

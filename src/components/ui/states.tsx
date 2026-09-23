@@ -13,9 +13,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-card border border-dashed border-cream-300 bg-cream-50/60 px-6 py-14 text-center">
-      <p className="font-display text-lg font-semibold text-ink-900">{title}</p>
-      {hint ? <p className="mx-auto mt-1.5 max-w-sm text-ink-500">{hint}</p> : null}
+    <div className="rounded-card border border-dashed border-brandline bg-white/60 px-6 py-14 text-center">
+      <p className="font-display text-lg font-semibold text-brandink">{title}</p>
+      {hint ? <p className="mx-auto mt-1.5 max-w-sm text-brandmuted">{hint}</p> : null}
       {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
     </div>
   );
@@ -41,7 +41,7 @@ export function SuccessNote({ children }: { children: ReactNode }) {
   return (
     <p
       role="status"
-      className="flex items-start gap-2 rounded-control border border-paid-500/30 bg-paid-50 px-4 py-3 text-sm text-paid-700"
+      className="flex items-start gap-2 rounded-control border border-leaf/30 bg-mint px-4 py-3 text-sm text-forest"
     >
       <span aria-hidden="true" className="font-semibold">
         ✓
@@ -62,9 +62,9 @@ export function Badge({
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        tone === "paid" && "bg-paid-50 text-paid-700",
-        tone === "muted" && "bg-cream-200 text-ink-500",
-        tone === "neutral" && "bg-bean-100 text-bean-700",
+        tone === "paid" && "bg-mint text-forest",
+        tone === "muted" && "bg-mint text-brandmuted",
+        tone === "neutral" && "bg-mint text-leaf",
       )}
     >
       {children}

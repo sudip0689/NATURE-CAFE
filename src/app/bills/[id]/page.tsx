@@ -7,6 +7,7 @@ import { formatMoney, formatMoneyCompact } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/datetime";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/states";
+import { HeaderAction, PageHeader } from "@/components/shell/page";
 
 export const metadata = { title: "Bill · Nature Caffe" };
 
@@ -47,89 +48,78 @@ export default async function BillDetailPage({
   const backHref = user.profile.role === "owner" ? "/owner/bills" : "/bills";
 
   return (
-    <main className="mx-auto w-full max-w-lg px-5 py-8">
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <Link href={backHref} className="text-sm text-ink-500 hover:text-ink-900">
-          ← Bills
-        </Link>
-        <Link
-          href="/pos"
-          className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-ink-700 hover:bg-cream-200"
-        >
-          Back to till
-        </Link>
-      </div>
+    <div className="mx-auto w-full max-w-lg">
+      <PageHeader
+        title={bill.bill_number}
+        description={`${formatDate(bill.created_at)} · ${formatTime(bill.created_at)}`}
+        back={{ href: backHref, label: "Bills" }}
+        action={<HeaderAction href="/pos">Till</HeaderAction>}
+      />
 
-      <Card className="p-6">
-        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-cream-300 pb-4">
-          <div>
-            <p className="tabular font-display text-xl font-semibold text-ink-900">
-              {bill.bill_number}
-            </p>
-            <p className="mt-1 text-sm text-ink-500">
-              {formatDate(bill.created_at)} · {formatTime(bill.created_at)}
-            </p>
+      <Card className="p-4 sm:p-5">
+        {/* No bill number or date here: PageHeader already carries both, and
+            repeating them was costing a whole block of vertical space. */}
+        <dl className="grid grid-cols-3 items-start gap-3 border-b border-brandline pb-3 text-meta">
+          <div className="min-w-0">
+            <dt className="text-brandmuted">Customer</dt>
+            <dd className="mt-0.5 truncate text-card font-medium">
+              {bill.customer_name}
+            </dd>
           </div>
-          <Badge tone="paid">{PAYMENT_LABEL[bill.payment_method]}</Badge>
-        </header>
-
-        <dl className="grid grid-cols-2 gap-3 border-b border-cream-300 py-4 text-sm">
-          <div>
-            <dt className="text-ink-500">Customer</dt>
-            <dd className="mt-0.5 font-medium text-ink-900">{bill.customer_name}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-500">Mobile</dt>
-            <dd className="tabular mt-0.5 font-medium text-ink-900">
+          <div className="min-w-0">
+            <dt className="text-brandmuted">Mobile</dt>
+            <dd className="tabular mt-0.5 truncate text-card font-medium">
               {bill.customer_mobile ?? "—"}
+            </dd>
+          </div>
+          <div className="text-right">
+            <dt className="sr-only">Payment</dt>
+            <dd>
+              <Badge tone="paid">{PAYMENT_LABEL[bill.payment_method]}</Badge>
             </dd>
           </div>
         </dl>
 
-        <ul className="divide-y divide-cream-200 py-2">
+        <ul className="divide-y divide-brandline/60 py-1">
           {(items ?? []).map((item) => (
-            <li key={item.id} className="flex items-baseline gap-3 py-2.5">
-              <span className="flex-1 text-ink-900">{item.product_name}</span>
-              <span className="tabular text-sm text-ink-500">
+            <li key={item.id} className="flex items-baseline gap-3 py-2">
+              <span className="min-w-0 flex-1 truncate text-card">
+                {item.product_name}
+              </span>
+              <span className="tabular text-meta text-brandmuted">
                 {item.quantity} × {formatMoneyCompact(item.unit_price)}
               </span>
-              <span className="tabular w-20 text-right font-medium text-ink-900">
+              <span className="tabular w-16 text-right text-card font-medium">
                 {formatMoneyCompact(item.line_total)}
               </span>
             </li>
           ))}
         </ul>
 
-        <dl className="space-y-1.5 border-t border-cream-300 pt-4">
+        <dl className="space-y-1 border-t border-brandline pt-3 text-card">
           <div className="flex justify-between">
-            <dt className="text-ink-700">Subtotal</dt>
-            <dd className="tabular font-medium text-ink-900">
-              {formatMoney(bill.subtotal)}
-            </dd>
+            <dt className="text-brandmuted">Subtotal</dt>
+            <dd className="tabular font-medium">{formatMoney(bill.subtotal)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-700">Discount</dt>
-            <dd className="tabular font-medium text-ink-900">
-              {formatMoney(bill.discount)}
-            </dd>
+            <dt className="text-brandmuted">Discount</dt>
+            <dd className="tabular font-medium">{formatMoney(bill.discount)}</dd>
           </div>
-          <div className="flex items-baseline justify-between border-t border-cream-300 pt-3">
-            <dt className="font-display text-lg font-semibold text-ink-900">Total</dt>
-            <dd className="tabular text-2xl font-semibold text-bean-800">
+          <div className="flex items-baseline justify-between border-t border-brandline pt-2.5">
+            <dt className="text-section font-bold text-forest">Total</dt>
+            <dd className="tabular text-xl font-bold text-forest">
               {formatMoney(bill.total)}
             </dd>
           </div>
         </dl>
       </Card>
 
-      <div className="mt-4">
-        <Link
-          href={`/bills/${bill.id}/print`}
-          className="inline-flex min-h-touch-lg w-full items-center justify-center rounded-control bg-bean-600 px-5 text-base font-medium text-cream-50 hover:bg-bean-700"
-        >
-          Print receipt
-        </Link>
-      </div>
-    </main>
+      <Link
+        href={`/bills/${bill.id}/print`}
+        className="mt-3 flex h-12 w-full items-center justify-center rounded-full bg-coffee text-sm font-semibold text-white transition-colors hover:bg-caramel"
+      >
+        Print receipt
+      </Link>
+    </div>
   );
 }

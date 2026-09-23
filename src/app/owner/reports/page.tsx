@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatMoney, toPaisa } from "@/lib/money";
 import { daysAgoInKolkata, formatDateLong, todayInKolkata } from "@/lib/datetime";
-import { StatCard, Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
+import { PageHeader, ScrollableTable, Section } from "@/components/shell/page";
+import { DateRangeForm } from "@/components/shell/date-range-form";
+import { StatTile } from "@/components/shell/stat-tile";
 
 export const metadata = { title: "Reports · Nature Caffe" };
 
@@ -14,8 +16,7 @@ export default async function ReportsPage({
   const params = await searchParams;
   const today = todayInKolkata();
 
-  // Last seven days by default — long enough to show a pattern, short enough
-  // that the table fits on one screen.
+  // Last seven days: long enough to show a pattern, short enough to scan.
   const from = params.from || daysAgoInKolkata(6);
   const to = params.to || today;
 
@@ -31,190 +32,123 @@ export default async function ReportsPage({
   const days = daily ?? [];
   const items = topItems ?? [];
 
-  // Bar widths are relative to the best-selling item, not to total revenue —
-  // proportions between items are what the eye is actually comparing here.
+  // Bars are relative to the best seller, not to total revenue — proportion
+  // between items is what the eye is comparing.
   const topRevenue = items.length ? toPaisa(items[0].revenue) : 0;
 
-  const busiest = days.reduce<(typeof days)[number] | null>(
-    (best, day) =>
-      !best || toPaisa(day.total_sales) > toPaisa(best.total_sales) ? day : best,
-    null,
-  );
-
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink-900">
-          Reports
-        </h1>
-        <p className="mt-1 text-ink-500">
-          How the café did, day by day, and what people are ordering.
-        </p>
-      </header>
+    <>
+      <PageHeader title="Reports" description="Day by day, and what sells." />
 
-      <form className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1.5">
-          <label htmlFor="from" className="block text-sm font-medium text-ink-700">
-            From
-          </label>
-          <input
-            id="from"
-            name="from"
-            type="date"
-            defaultValue={from}
-            max={today}
-            className="min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 focus:border-bean-500 focus:outline-none"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="to" className="block text-sm font-medium text-ink-700">
-            To
-          </label>
-          <input
-            id="to"
-            name="to"
-            type="date"
-            defaultValue={to}
-            max={today}
-            className="min-h-touch rounded-control border border-cream-300 bg-cream-50 px-4 text-base text-ink-900 focus:border-bean-500 focus:outline-none"
-          />
-        </div>
-        <button
-          type="submit"
-          className="inline-flex min-h-touch items-center rounded-control border border-cream-300 bg-cream-50 px-5 text-base font-medium text-ink-900 hover:bg-cream-100"
-        >
-          Show
-        </button>
-      </form>
+      <DateRangeForm from={from} to={to} max={today} />
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
+      <div className="mb-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <StatTile
+          className="col-span-2"
+          tone="green"
           label="Total sales"
           value={formatMoney(summary?.total_sales ?? "0")}
-          note={busiest ? `Best day ${formatDateLong(busiest.day)}` : undefined}
-          tone="paid"
+          note={`${summary?.bill_count ?? 0} bills`}
         />
-        <StatCard label="Bills" value={String(summary?.bill_count ?? 0)} />
-        <StatCard label="Cash" value={formatMoney(summary?.cash_sales ?? "0")} />
-        <StatCard label="UPI" value={formatMoney(summary?.upi_sales ?? "0")} />
-        <StatCard label="Card" value={formatMoney(summary?.card_sales ?? "0")} />
-      </section>
+        <StatTile label="Cash" value={formatMoney(summary?.cash_sales ?? "0")} />
+        <StatTile label="UPI" value={formatMoney(summary?.upi_sales ?? "0")} />
+        <StatTile label="Card" value={formatMoney(summary?.card_sales ?? "0")} />
+        <StatTile label="Bills" value={String(summary?.bill_count ?? 0)} />
+      </div>
 
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-semibold text-ink-900">
-          Day by day
-        </h2>
-
+      <Section title="Day by day">
         {days.length === 0 ? (
-          <EmptyState
-            title="No sales in this range"
-            hint="Pick a wider range, or wait for the counter to ring one up."
-          />
+          <EmptyState title="No sales in this range" hint="Try a wider range." />
         ) : (
-          <Card className="overflow-hidden">
-            {/* The only table in the app that can't collapse to cards — six
-                numeric columns compared across rows is the whole point of it.
-                So it scrolls sideways on a phone instead. */}
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[34rem] text-sm">
-                <thead>
-                  <tr className="border-b border-cream-300 text-left text-xs uppercase tracking-[0.08em] text-ink-500">
-                    <th scope="col" className="px-4 py-3 font-medium">Date</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">Bills</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">Cash</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">UPI</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">Card</th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">Total</th>
+          /* The one table that cannot become cards: six numeric columns
+             compared across rows is the entire point of it. So this box
+             scrolls sideways — the page never does. */
+          <ScrollableTable>
+            <table className="w-full min-w-[32rem] border-collapse text-meta">
+              <thead>
+                <tr className="border-b border-brandline text-left uppercase tracking-[0.06em] text-brandmuted">
+                  <th scope="col" className="bg-white px-3 py-2 font-medium">Date</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Bills</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Cash</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">UPI</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Card</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brandline/60">
+                {days.map((day) => (
+                  <tr key={day.day}>
+                    <th
+                      scope="row"
+                      className="whitespace-nowrap px-3 py-2 text-left text-card font-medium"
+                    >
+                      {formatDateLong(day.day)}
+                    </th>
+                    <td className="tabular px-3 py-2 text-right text-brandmuted">
+                      {day.bill_count}
+                    </td>
+                    <td className="tabular px-3 py-2 text-right text-brandmuted">
+                      {formatMoney(day.cash_sales)}
+                    </td>
+                    <td className="tabular px-3 py-2 text-right text-brandmuted">
+                      {formatMoney(day.upi_sales)}
+                    </td>
+                    <td className="tabular px-3 py-2 text-right text-brandmuted">
+                      {formatMoney(day.card_sales)}
+                    </td>
+                    <td className="tabular px-3 py-2 text-right font-bold text-forest">
+                      {formatMoney(day.total_sales)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-cream-200">
-                  {days.map((day) => (
-                    <tr key={day.day}>
-                      <th scope="row" className="px-4 py-3 text-left font-medium text-ink-900">
-                        {formatDateLong(day.day)}
-                      </th>
-                      <td className="tabular px-4 py-3 text-right text-ink-700">
-                        {day.bill_count}
-                      </td>
-                      <td className="tabular px-4 py-3 text-right text-ink-700">
-                        {formatMoney(day.cash_sales)}
-                      </td>
-                      <td className="tabular px-4 py-3 text-right text-ink-700">
-                        {formatMoney(day.upi_sales)}
-                      </td>
-                      <td className="tabular px-4 py-3 text-right text-ink-700">
-                        {formatMoney(day.card_sales)}
-                      </td>
-                      <td className="tabular px-4 py-3 text-right font-semibold text-ink-900">
-                        {formatMoney(day.total_sales)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                ))}
+              </tbody>
+            </table>
+          </ScrollableTable>
         )}
-
         {days.length > 0 ? (
-          <p className="text-sm text-ink-500">
+          <p className="mt-2 text-[0.68rem] text-brandmuted">
             Days with no sales are left out rather than shown as zero.
           </p>
         ) : null}
-      </section>
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-semibold text-ink-900">
-          Top items
-        </h2>
-
+      <Section title="Top items">
         {items.length === 0 ? (
-          <EmptyState
-            title="Nothing sold in this range"
-            hint="Once bills start coming in, the best sellers show up here."
-          />
+          <EmptyState title="Nothing sold in this range" hint="Best sellers show up here." />
         ) : (
-          <Card className="divide-y divide-cream-200">
+          <ul className="divide-y divide-brandline/60 overflow-hidden rounded-2xl border border-brandline bg-white">
             {items.map((item) => {
               const share = topRevenue
                 ? Math.max(2, Math.round((toPaisa(item.revenue) / topRevenue) * 100))
                 : 0;
-
               return (
-                <div key={item.product_name} className="px-4 py-3">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <span className="min-w-0 flex-1 truncate font-medium text-ink-900">
+                <li key={item.product_name} className="px-3 py-2.5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 flex-1 truncate text-card font-medium">
                       {item.product_name}
                     </span>
-                    <span className="tabular text-sm text-ink-500">
+                    <span className="tabular shrink-0 text-meta text-brandmuted">
                       {item.quantity_sold} sold
                     </span>
-                    <span className="tabular w-24 text-right font-semibold text-ink-900">
+                    <span className="tabular w-20 shrink-0 text-right text-card font-bold text-forest">
                       {formatMoney(item.revenue)}
                     </span>
                   </div>
-                  {/* Relative bar, not a chart — it answers "roughly how much
-                      more than the next one" without any library. */}
-                  <div
-                    className="mt-2 h-1.5 rounded-full bg-cream-200"
-                    aria-hidden="true"
-                  >
+                  <div className="mt-1.5 h-1 rounded-full bg-mint" aria-hidden="true">
                     <div
-                      className="h-full rounded-full bg-bean-400"
+                      className="h-full rounded-full bg-leaf"
                       style={{ width: `${share}%` }}
                     />
                   </div>
-                </div>
+                </li>
               );
             })}
-          </Card>
+          </ul>
         )}
-
-        <p className="text-sm text-ink-500">
-          Grouped by the name on the receipt. Renaming an item starts a new line
-          here — past bills keep the name they were sold under.
+        <p className="mt-2 text-[0.68rem] text-brandmuted">
+          Grouped by the name on the receipt — renaming an item starts a new line.
         </p>
-      </section>
-    </div>
+      </Section>
+    </>
   );
 }

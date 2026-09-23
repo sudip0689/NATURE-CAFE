@@ -7,14 +7,14 @@ type Size = "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-bean-600 text-cream-50 hover:bg-bean-700 active:bg-bean-800 disabled:bg-bean-300",
+    "bg-forest text-white hover:bg-leaf active:bg-forest disabled:bg-brandline",
   secondary:
-    "bg-cream-50 text-ink-900 border border-cream-300 hover:bg-cream-100 active:bg-cream-200",
-  ghost: "bg-transparent text-ink-700 hover:bg-cream-200 active:bg-cream-300",
+    "bg-white text-brandink border border-brandline hover:bg-ivory active:bg-mint",
+  ghost: "bg-transparent text-brandink hover:bg-mint active:bg-brandline",
   danger:
     "bg-alert-500 text-white hover:bg-alert-600 active:bg-alert-600 disabled:bg-alert-500/40",
   // Reserved for the one green moment: confirming that money arrived.
-  paid: "bg-paid-600 text-white hover:bg-paid-700 active:bg-paid-700 disabled:bg-paid-500/40",
+  paid: "bg-leaf text-white hover:bg-forest active:bg-forest disabled:bg-leaf/40",
 };
 
 const SIZES: Record<Size, string> = {

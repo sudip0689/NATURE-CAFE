@@ -47,7 +47,7 @@ export default async function ManagementDashboard() {
 
       <section>
         <h2 className="sr-only">Today at a glance</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatTile
             href="/owner/products"
             tone="green"
@@ -90,7 +90,7 @@ export default async function ManagementDashboard() {
             and both the titles and the descriptions wrap, so narrower phones
             get one readable column instead. The brief allows this: "a clean
             two-column grid on mobile where appropriate". */}
-        <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3">
           <ManageCard
             href="/owner/products"
             tone="green"
@@ -179,7 +179,12 @@ function formatMoneyShort(amount: string): string {
 
 function HeroBanner() {
   return (
-    <section className="relative -mx-4 overflow-hidden border-y border-brandline/60 bg-sand/60 px-4 py-6">
+    // Bleeds to the screen edge on a phone, where the banner is the whole
+    // width; from lg it sits inside the content column as a card, because a
+    // full-bleed strip across 1280px is a billboard, not a greeting. The
+    // negative margin tracks <main>'s own padding at each step — mismatch it
+    // and a few pixels of ivory show down each side.
+    <section className="relative -mx-4 overflow-hidden border-y border-brandline/60 bg-sand/60 px-4 py-5 sm:-mx-5 sm:px-5 lg:mx-0 lg:rounded-3xl lg:border lg:px-8 lg:py-7">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"

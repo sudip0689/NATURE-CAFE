@@ -2,8 +2,7 @@ import Link from "next/link";
 
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/datetime";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/states";
+import { PrinterIcon } from "@/components/icons";
 
 export interface BillListRow {
   id: string;
@@ -22,43 +21,51 @@ const PAYMENT_LABEL: Record<string, string> = {
 };
 
 /**
- * One row per bill, readable at a glance. No table on mobile — a six-column
- * table at 375px is four columns of nothing and two of ellipsis.
+ * One compact row per bill — number, customer, time, payment, total, reprint.
  *
- * Two separate links rather than one wrapping link with a button inside it:
- * nesting interactive elements is invalid, and a screen reader announcing
- * "link, link" for one row is worse than the slightly busier markup.
+ * Rows, not a table: at 360px a six-column table is four columns of ellipsis.
+ * The row stays near 64px so a phone shows eight or nine bills at once instead
+ * of three.
+ *
+ * Two sibling links rather than one wrapping the other — nesting interactive
+ * elements is invalid, and "link, link" per row is worse for a screen reader
+ * than slightly busier markup.
  */
 export function BillList({ bills }: { bills: BillListRow[] }) {
   return (
     <ul className="space-y-2">
       {bills.map((bill) => (
         <li key={bill.id}>
-          <Card className="flex flex-wrap items-center gap-2 p-2 pr-3 transition-colors hover:bg-cream-100">
+          <div className="flex items-center gap-1 rounded-2xl border border-brandline bg-white pr-1.5 transition-colors hover:border-leaf/40">
             <Link
               href={`/bills/${bill.id}`}
-              className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 rounded-control px-2 py-2"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-2.5"
             >
-              <span className="tabular font-medium text-ink-900">
-                {bill.bill_number}
-              </span>
-
-              <span className="text-sm text-ink-500">
-                {formatDate(bill.created_at)} · {formatTime(bill.created_at)}
-              </span>
-
-              <span className="min-w-0 flex-1 truncate text-ink-700">
-                {bill.customer_name}
-                {bill.customer_mobile ? (
-                  <span className="tabular ml-2 text-sm text-ink-400">
-                    {bill.customer_mobile}
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-2">
+                  <span className="tabular truncate text-card font-semibold text-brandink">
+                    {bill.bill_number}
                   </span>
-                ) : null}
+                  <span className="shrink-0 rounded-full bg-mint px-1.5 py-px text-[0.6rem] font-medium text-forest">
+                    {PAYMENT_LABEL[bill.payment_method] ?? bill.payment_method}
+                  </span>
+                </span>
+                <span className="mt-0.5 flex items-center gap-1.5 text-meta text-brandmuted">
+                  <span className="truncate">{bill.customer_name}</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular shrink-0">
+                    {formatTime(bill.created_at)}
+                  </span>
+                  <span aria-hidden="true" className="hidden min-[400px]:inline">
+                    ·
+                  </span>
+                  <span className="tabular hidden shrink-0 min-[400px]:inline">
+                    {formatDate(bill.created_at)}
+                  </span>
+                </span>
               </span>
 
-              <Badge tone="muted">{PAYMENT_LABEL[bill.payment_method]}</Badge>
-
-              <span className="tabular w-24 text-right font-semibold text-ink-900">
+              <span className="tabular shrink-0 text-card font-bold text-forest">
                 {formatMoney(bill.total)}
               </span>
             </Link>
@@ -66,11 +73,12 @@ export function BillList({ bills }: { bills: BillListRow[] }) {
             <Link
               href={`/bills/${bill.id}/print`}
               aria-label={`Reprint bill ${bill.bill_number}`}
-              className="inline-flex min-h-touch shrink-0 items-center rounded-control border border-cream-300 bg-cream-50 px-4 text-sm font-medium text-ink-900 hover:bg-cream-200"
+              title="Reprint"
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl text-brandmuted transition-colors hover:bg-sand hover:text-coffee"
             >
-              Reprint
+              <PrinterIcon className="size-4" />
             </Link>
-          </Card>
+          </div>
         </li>
       ))}
     </ul>

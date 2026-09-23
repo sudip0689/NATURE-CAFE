@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/ui/states";
 import { CategoryManager, type CategoryRowData } from "./category-manager";
+import { PageHeader } from "@/components/shell/page";
 
 export const metadata = { title: "Categories · Nature Caffe" };
 
@@ -27,15 +28,10 @@ export default async function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink-900">
-          Categories
-        </h1>
-        <p className="mt-1 text-ink-500">
-          These become the tabs at the till. Hiding one keeps its items and its
-          sales history — only deleting needs the category to be empty.
-        </p>
-      </header>
+      <PageHeader
+        title="Categories"
+        description="These become the tabs at the till. Hiding one keeps its items and sales history."
+      />
 
       {categories.length === 0 ? (
         <EmptyState

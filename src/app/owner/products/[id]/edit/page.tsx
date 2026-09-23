@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { ProductForm } from "../../product-form";
+import { PageHeader } from "@/components/shell/page";
 
 export const metadata = { title: "Edit item · Nature Caffe" };
 
@@ -32,18 +32,11 @@ export default async function EditProductPage({
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <header>
-        <Link href="/owner/products" className="text-sm text-ink-500 hover:text-ink-900">
-          ← Products
-        </Link>
-        <h1 className="mt-2 font-display text-2xl font-semibold tracking-[-0.02em] text-ink-900">
-          Edit item
-        </h1>
-        <p className="mt-1 text-sm text-ink-500">
-          Changing the price affects new bills only. Past receipts keep the price
-          that was actually charged.
-        </p>
-      </header>
+      <PageHeader
+        title="Edit item"
+        description="Price changes affect new bills only — past receipts keep what was charged."
+        back={{ href: "/owner/products", label: "Food Items" }}
+      />
 
       <ProductForm categories={categories ?? []} product={product} />
     </div>

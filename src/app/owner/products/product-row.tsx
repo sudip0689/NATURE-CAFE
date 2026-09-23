@@ -40,21 +40,21 @@ export function ProductRow({ product }: { product: ProductRowData }) {
           ) : (
             <div
               aria-hidden="true"
-              className="flex size-14 shrink-0 items-center justify-center rounded-control bg-bean-100 font-display text-lg font-semibold text-bean-500"
+              className="flex size-14 shrink-0 items-center justify-center rounded-control bg-mint font-display text-lg font-semibold text-leaf"
             >
               {product.name.slice(0, 1).toUpperCase()}
             </div>
           )}
 
           <div className="min-w-[8rem] flex-1">
-            <p className="font-medium text-ink-900">{product.name}</p>
-            <p className="mt-0.5 flex items-center gap-2 text-sm text-ink-500">
+            <p className="font-medium text-brandink">{product.name}</p>
+            <p className="mt-0.5 flex items-center gap-2 text-sm text-brandmuted">
               {product.categoryName ?? "No category"}
               {product.is_active ? null : <Badge tone="muted">Hidden</Badge>}
             </p>
           </div>
 
-          <p className="tabular text-lg font-semibold text-ink-900">
+          <p className="tabular text-lg font-semibold text-brandink">
             {formatMoneyCompact(product.price)}
           </p>
 
@@ -63,7 +63,7 @@ export function ProductRow({ product }: { product: ProductRowData }) {
 
             <Link
               href={`/owner/products/${product.id}/edit`}
-              className="inline-flex min-h-touch items-center rounded-control border border-cream-300 bg-cream-50 px-4 text-base font-medium text-ink-900 hover:bg-cream-100"
+              className="inline-flex min-h-touch items-center rounded-control border border-brandline bg-white px-4 text-base font-medium text-brandink hover:bg-ivory"
             >
               Edit
             </Link>

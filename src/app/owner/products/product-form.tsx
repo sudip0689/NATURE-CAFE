@@ -68,21 +68,21 @@ export function ProductForm({
         />
 
         <div className="space-y-1.5">
-          <label htmlFor="image" className="block text-sm font-medium text-ink-700">
-            Photo <span className="font-normal text-ink-400">(optional)</span>
+          <label htmlFor="image" className="block text-sm font-medium text-brandink">
+            Photo <span className="font-normal text-brandmuted">(optional)</span>
           </label>
           <input
             id="image"
             name="image"
             type="file"
             accept="image/*"
-            className="w-full rounded-control border border-cream-300 bg-cream-50 px-4 py-3 text-base text-ink-700 file:mr-3 file:rounded-control file:border-0 file:bg-bean-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-bean-800"
+            className="w-full rounded-control border border-brandline bg-white px-4 py-3 text-base text-brandink file:mr-3 file:rounded-control file:border-0 file:bg-mint file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-forest"
           />
-          <p className="text-sm text-ink-500">JPG or PNG, under 2 MB.</p>
+          <p className="text-sm text-brandmuted">JPG or PNG, under 2 MB.</p>
         </div>
 
         {product?.image_url ? (
-          <div className="flex items-center gap-4 rounded-control border border-cream-300 bg-cream-100 p-3">
+          <div className="flex items-center gap-4 rounded-control border border-brandline bg-ivory p-3">
             {/* Plain <img>: the URL is user-supplied Supabase Storage, and
                 next/image would need the host allow-listed for no real gain
                 on a thumbnail this size. */}
@@ -92,14 +92,14 @@ export function ProductForm({
               alt=""
               className="h-16 w-16 rounded-control object-cover"
             />
-            <label className="flex items-center gap-2 text-sm text-ink-700">
+            <label className="flex items-center gap-2 text-sm text-brandink">
               <input type="checkbox" name="remove_image" className="size-4" />
               Remove this photo
             </label>
           </div>
         ) : null}
 
-        <label className="flex items-center gap-3 rounded-control border border-cream-300 bg-cream-100 px-4 py-3">
+        <label className="flex items-center gap-3 rounded-control border border-brandline bg-ivory px-4 py-3">
           <input
             type="checkbox"
             name="is_active"
@@ -107,8 +107,8 @@ export function ProductForm({
             className="size-5"
           />
           <span>
-            <span className="block font-medium text-ink-900">Active</span>
-            <span className="block text-sm text-ink-500">
+            <span className="block font-medium text-brandink">Active</span>
+            <span className="block text-sm text-brandmuted">
               Inactive items stay in sales history but disappear from the till.
             </span>
           </span>
@@ -122,7 +122,7 @@ export function ProductForm({
           </Button>
           <Link
             href="/owner/products"
-            className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-ink-700 hover:bg-cream-200"
+            className="inline-flex min-h-touch items-center rounded-control px-4 text-base font-medium text-brandink hover:bg-mint"
           >
             Cancel
           </Link>
