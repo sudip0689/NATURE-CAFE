@@ -56,12 +56,17 @@ export function ProductGrid({
               className={cn(
                 "group relative flex h-full w-full flex-col overflow-hidden rounded-card text-left",
                 "transition-all duration-150 touch-manipulation",
+                // The border width never changes. Selecting used to swap it
+                // from 1px to 2px, which with border-box shrank the image well
+                // by 2px — the picture nudged every time a card was tapped.
+                "border border-brandline",
                 selected
                   ? // Three signals at once, because one thin border was not
                     // readable at a glance on a phone at counter distance: a
-                    // 2px leaf border, a tinted card, and lifted elevation.
-                    "border-2 border-leaf bg-mint shadow-[0_4px_14px_rgba(31,138,76,0.22)]"
-                  : "border border-brandline bg-white hover:bg-ivory",
+                    // leaf ring, a tinted card, and lifted elevation. The ring
+                    // is a box-shadow, so it costs no layout.
+                    "bg-mint ring-2 ring-inset ring-leaf shadow-[0_4px_14px_rgba(31,138,76,0.22)]"
+                  : "bg-white hover:bg-ivory",
               )}
             >
               {/* A fixed 4:3 well, the same on every card and identical
