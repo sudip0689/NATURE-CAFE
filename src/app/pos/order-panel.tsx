@@ -11,6 +11,7 @@ import type { PaymentMethod } from "@/lib/supabase/types";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/button";
 import { ErrorNote } from "@/components/ui/states";
+import { CloseIcon } from "@/components/icons";
 
 const PAYMENT_METHODS: ReadonlyArray<{ value: PaymentMethod; label: string }> = [
   { value: "cash", label: "Cash" },
@@ -36,6 +37,8 @@ export interface OrderPanelProps {
   onPaymentMethodChange: (value: PaymentMethod) => void;
   onClear: () => void;
   onGenerate: () => void;
+  /** Phone sheet only — the desktop aside has nothing to close. */
+  onClose?: () => void;
 }
 
 export function OrderPanel({
@@ -56,6 +59,7 @@ export function OrderPanel({
   onPaymentMethodChange,
   onClear,
   onGenerate,
+  onClose,
 }: OrderPanelProps) {
   const empty = lines.length === 0;
 
@@ -66,19 +70,41 @@ export function OrderPanel({
     // column fell back to content height — flex-1 + min-h-0 is what actually
     // constrains it there. Both are set so one component suits both mounts.
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-brandline px-4 py-3">
-        <h2 className="font-display text-lg font-semibold text-brandink">
-          Current order
-        </h2>
+      <header className="flex shrink-0 items-center gap-2 border-b border-brandline px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-lg font-semibold leading-tight text-brandink">
+            Current Order
+          </h2>
+          <p className="text-meta text-brandmuted">
+            {empty
+              ? "Nothing added yet"
+              : `${totals.itemCount} ${totals.itemCount === 1 ? "Item" : "Items"}`}
+          </p>
+        </div>
+
         {empty ? null : (
           <button
             type="button"
             onClick={onClear}
-            className="min-h-touch rounded-control px-3 text-sm font-medium text-brandmuted hover:bg-mint hover:text-alert-600"
+            className="min-h-touch shrink-0 rounded-control px-3 text-sm font-medium text-brandmuted transition-colors hover:bg-mint hover:text-alert-600"
           >
             Clear
           </button>
         )}
+
+        {/* Phone only. The desktop aside is always on screen and has nothing
+            to close; the sheet previously relied on tapping the dimmed area
+            behind it, which is not something a cashier discovers mid-sale. */}
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close order"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-brandmuted transition-colors hover:bg-mint hover:text-forest"
+          >
+            <CloseIcon className="size-5" />
+          </button>
+        ) : null}
       </header>
 
       {/* min-h-0 is load-bearing. A flex child defaults to min-height:auto,

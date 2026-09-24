@@ -281,7 +281,7 @@ export function PosClient({
               <span className="h-1 w-10 rounded-full bg-brandline" />
             </div>
             <div className="flex min-h-0 flex-1 flex-col">
-              <OrderPanel {...panelProps} />
+              <OrderPanel {...panelProps} onClose={() => setDrawerOpen(false)} />
             </div>
           </div>
         </div>

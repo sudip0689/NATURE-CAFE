@@ -17,6 +17,14 @@ const stroke = {
   strokeLinejoin: "round" as const,
 };
 
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...stroke}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
 /** Selection tick. Heavier than the rest — it reads at arm's length on a till. */
 export function CheckIcon({ className }: IconProps) {
   return (
