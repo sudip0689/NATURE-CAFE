@@ -23,7 +23,9 @@ export default async function ProductsPage({
       // sold, which is a worse failure than a long management page.
       let query = supabase
         .from("products")
-        .select("id, name, price, image_url, is_active, categories(name)")
+        // Same order the till and the printed menu use.
+        .select("id, name, price, image_url, is_active, category_id, categories(name)")
+        .order("sort_order")
         .order("name")
         .limit(500);
 
@@ -35,17 +37,26 @@ export default async function ProductsPage({
     })(),
   ]);
 
-  const products: ProductRowData[] = (rows ?? []).map((row) => {
-    const embedded = row.categories as unknown as { name: string } | null;
-    return {
-      id: row.id,
-      name: row.name,
-      price: row.price,
-      image_url: row.image_url,
-      is_active: row.is_active,
-      categoryName: embedded?.name ?? null,
-    };
-  });
+  // Group the menu-ordered runs by category, the way /pos does — PostgREST
+  // cannot order parent rows by a joined column, and sort() is stable, so
+  // comparing only the category preserves each category's own order.
+  const categoryRank = new Map((categories ?? []).map((c, i) => [c.id, i]));
+  const rankOf = (id: string | null) =>
+    id === null ? Number.MAX_SAFE_INTEGER : (categoryRank.get(id) ?? Number.MAX_SAFE_INTEGER);
+
+  const products: ProductRowData[] = [...(rows ?? [])]
+    .sort((a, b) => rankOf(a.category_id) - rankOf(b.category_id))
+    .map((row) => {
+      const embedded = row.categories as unknown as { name: string } | null;
+      return {
+        id: row.id,
+        name: row.name,
+        price: row.price,
+        image_url: row.image_url,
+        is_active: row.is_active,
+        categoryName: embedded?.name ?? null,
+      };
+    });
 
   const filtering = Boolean(q.trim() || category);
 
@@ -67,7 +78,7 @@ export default async function ProductsPage({
             name="q"
             type="search"
             defaultValue={q}
-            placeholder="Chicken Roll"
+            placeholder="Paneer Pizza"
             className="h-11 w-full rounded-xl border border-brandline bg-white px-3 text-[0.85rem] text-brandink placeholder:text-brandmuted/60 focus:border-leaf focus:outline-none"
           />
         </label>

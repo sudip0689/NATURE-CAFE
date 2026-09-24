@@ -44,7 +44,7 @@ export function ProductForm({
           defaultValue={product?.name ?? ""}
           required
           maxLength={80}
-          placeholder="Chicken Roll"
+          placeholder="Paneer Pizza"
           autoFocus={!editing}
         />
 

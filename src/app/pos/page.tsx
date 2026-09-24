@@ -26,6 +26,7 @@ export default async function PosPage() {
         .from("products")
         .select("id, name, price, image_url, category_id")
         .eq("is_active", true)
+        .order("sort_order")
         .order("name"),
       supabase
         .from("categories")
@@ -36,7 +37,25 @@ export default async function PosPage() {
       getSettings(),
     ]);
 
-  const menu: PosProduct[] = products ?? [];
+  /**
+   * Menu order, not alphabetical.
+   *
+   * The query already returns each category's items in the order the printed
+   * menu lists them. This groups those runs by category so the "All" tab reads
+   * down the board the same way — otherwise every category's first item would
+   * come first, then every second item, which is nobody's menu.
+   *
+   * PostgREST cannot order parent rows by a joined column, hence sorting here.
+   * Array.prototype.sort is stable, so comparing only the category keeps the
+   * within-category order the database already established.
+   */
+  const categoryRank = new Map((categories ?? []).map((c, i) => [c.id, i]));
+  const rankOf = (categoryId: string | null) =>
+    categoryId === null ? Number.MAX_SAFE_INTEGER : (categoryRank.get(categoryId) ?? Number.MAX_SAFE_INTEGER);
+
+  const menu: PosProduct[] = [...(products ?? [])].sort(
+    (a, b) => rankOf(a.category_id) - rankOf(b.category_id),
+  );
   const isOwner = user.profile.role === "owner";
 
   return (
