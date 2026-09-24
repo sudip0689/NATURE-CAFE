@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signOut } from "@/app/login/actions";
-import { CrownIcon, MenuIcon } from "@/components/icons";
+import { CrownIcon } from "@/components/icons";
 import { NatureCaffeMark } from "@/app/login/welcome-art";
 import { cn } from "@/lib/cn";
 import { BottomNav, HeaderNav } from "./app-nav";
@@ -114,7 +114,11 @@ export function AppHeader({
       >
         {menu ?? null}
 
-        <Link href="/" className="flex min-w-0 flex-1 items-center gap-2">
+        {/* min-h-touch: the wordmark is a link home and was 31px tall. */}
+        <Link
+          href="/"
+          className="flex min-h-touch min-w-0 flex-1 items-center gap-2 rounded-xl transition-colors duration-150 active:bg-mint/60"
+        >
           <NatureCaffeMark className="w-7 shrink-0" />
           <span className="min-w-0">
             {/* The two-tone wordmark is the brand; a café that renamed itself
@@ -149,7 +153,7 @@ export function AppHeader({
         <form action={signOut} className="shrink-0">
           <button
             type="submit"
-            className="flex h-9 items-center rounded-full px-2.5 text-xs font-medium text-brandmuted transition-colors hover:bg-mint hover:text-forest sm:px-3"
+            className="flex min-h-touch items-center rounded-full px-3 text-xs font-medium text-brandmuted transition-colors duration-150 hover:bg-mint hover:text-forest active:bg-mint active:text-forest sm:px-3.5"
           >
             Sign out
           </button>
@@ -170,35 +174,10 @@ export function HeaderLink({
   return (
     <Link
       href={href}
-      className="flex h-9 shrink-0 items-center rounded-full px-2.5 text-xs font-medium text-brandink transition-colors hover:bg-mint hover:text-forest sm:px-3 sm:text-sm"
+      className="flex min-h-touch shrink-0 items-center rounded-full px-3 text-xs font-medium text-brandink transition-colors duration-150 hover:bg-mint hover:text-forest active:bg-mint active:text-forest sm:text-sm"
     >
       {children}
     </Link>
-  );
-}
-
-/** The ☰ disclosure. Plain <details> — works before hydration, no JS. */
-export function ShellMenu({ items }: { items: { href: string; label: string }[] }) {
-  return (
-    <details className="relative shrink-0 lg:hidden">
-      <summary
-        aria-label="Open menu"
-        className="flex size-9 cursor-pointer list-none items-center justify-center rounded-full text-brandink transition-colors hover:bg-mint [&::-webkit-details-marker]:hidden"
-      >
-        <MenuIcon className="size-5" />
-      </summary>
-      <div className="absolute left-0 top-11 z-30 w-52 overflow-hidden rounded-2xl border border-brandline bg-white shadow-[0_8px_28px_rgba(90,46,18,0.14)]">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="block px-4 py-2.5 text-sm font-medium text-brandink transition-colors hover:bg-mint"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </div>
-    </details>
   );
 }
 

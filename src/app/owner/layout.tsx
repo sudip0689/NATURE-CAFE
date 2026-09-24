@@ -1,16 +1,17 @@
 import { requireOwner } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { AppShell, OwnerBadge, ShellMenu } from "@/components/shell/app-shell";
+import { AppShell, OwnerBadge } from "@/components/shell/app-shell";
+import { ShellDrawer, type DrawerItem } from "@/components/shell/shell-drawer";
 
-const MENU = [
-  { href: "/owner", label: "Dashboard" },
-  { href: "/owner/products", label: "Food Items" },
-  { href: "/owner/categories", label: "Categories" },
-  { href: "/owner/sales", label: "Sales Report" },
-  { href: "/owner/reports", label: "Reports" },
-  { href: "/owner/bills", label: "Bills" },
-  { href: "/owner/settings", label: "Settings" },
-  { href: "/pos", label: "Open Billing" },
+const MENU: DrawerItem[] = [
+  { href: "/owner", label: "Dashboard", icon: "home", exact: true },
+  { href: "/owner/products", label: "Food Items", icon: "cutlery" },
+  { href: "/owner/categories", label: "Categories", icon: "tag" },
+  { href: "/owner/sales", label: "Sales Report", icon: "chart" },
+  { href: "/owner/reports", label: "Top Items", icon: "bolt" },
+  { href: "/owner/bills", label: "Bills", icon: "receipt" },
+  { href: "/owner/settings", label: "Settings", icon: "gear" },
+  { href: "/pos", label: "Open Billing", icon: "cart" },
 ];
 
 /**
@@ -35,7 +36,7 @@ export default async function OwnerLayout({ children }: LayoutProps<"/owner">) {
       tagline={settings?.tagline ?? undefined}
       eyebrow="Management"
       showNav
-      menu={<ShellMenu items={MENU} />}
+      menu={<ShellDrawer items={MENU} cafeName={cafeName} eyebrow="Management" />}
       headerExtra={<OwnerBadge initial={cafeName.slice(0, 1).toUpperCase()} />}
     >
       {children}

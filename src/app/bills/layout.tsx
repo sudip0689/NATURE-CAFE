@@ -1,6 +1,8 @@
 import { requireUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { AppShell, ShellMenu } from "@/components/shell/app-shell";
+import { AppShell } from "@/components/shell/app-shell";
+import { ShellDrawer, type DrawerItem } from "@/components/shell/shell-drawer";
+
 
 /**
  * Bills are reached by both roles, so the chrome adapts rather than forking.
@@ -20,22 +22,22 @@ export default async function BillsLayout({ children }: LayoutProps<"/bills">) {
       eyebrow="Bills"
       showNav={isOwner}
       menu={
-        isOwner ? (
-          <ShellMenu
-            items={[
-              { href: "/owner", label: "Dashboard" },
-              { href: "/owner/bills", label: "All Bills" },
-              { href: "/pos", label: "Open Billing" },
-            ]}
-          />
-        ) : (
-          <ShellMenu
-            items={[
-              { href: "/pos", label: "Open Billing" },
-              { href: "/bills", label: "Recent Bills" },
-            ]}
-          />
-        )
+        <ShellDrawer
+          cafeName={settings?.cafe_name || "Nature Caffe"}
+          eyebrow="Bills"
+          items={
+            (isOwner
+              ? [
+                  { href: "/owner", label: "Dashboard", icon: "home", exact: true },
+                  { href: "/owner/bills", label: "All Bills", icon: "receipt" },
+                  { href: "/pos", label: "Open Billing", icon: "cart" },
+                ]
+              : [
+                  { href: "/pos", label: "Open Billing", icon: "cart" },
+                  { href: "/bills", label: "Recent Bills", icon: "receipt" },
+                ]) as DrawerItem[]
+          }
+        />
       }
     >
       {children}
