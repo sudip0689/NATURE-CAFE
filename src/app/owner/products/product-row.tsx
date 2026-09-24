@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge, ErrorNote } from "@/components/ui/states";
 import { formatMoneyCompact } from "@/lib/money";
+import { CutleryIcon } from "@/components/icons";
 import { EMPTY_FORM_STATE, type FormState } from "@/lib/form-state";
 import { productRowAction } from "./actions";
 
@@ -30,19 +31,23 @@ export function ProductRow({ product }: { product: ProductRowData }) {
     <li>
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-4">
+          {/* Same treatment as the till: one fixed well, contained image,
+              quiet icon when there is no photo. */}
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={product.image_url}
               alt=""
-              className="size-14 shrink-0 rounded-control object-cover"
+              loading="lazy"
+              decoding="async"
+              className="size-14 shrink-0 rounded-control bg-mint object-contain p-1"
             />
           ) : (
             <div
               aria-hidden="true"
-              className="flex size-14 shrink-0 items-center justify-center rounded-control bg-mint font-display text-lg font-semibold text-leaf"
+              className="flex size-14 shrink-0 items-center justify-center rounded-control bg-mint"
             >
-              {product.name.slice(0, 1).toUpperCase()}
+              <CutleryIcon className="size-5 text-leaf/40" />
             </div>
           )}
 

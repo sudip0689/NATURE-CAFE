@@ -1,7 +1,7 @@
 "use client";
 
 import { formatMoneyCompact } from "@/lib/money";
-import { CheckIcon } from "@/components/icons";
+import { CheckIcon, CutleryIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 export interface PosProduct {
@@ -64,21 +64,31 @@ export function ProductGrid({
                   : "border border-brandline bg-white hover:bg-ivory",
               )}
             >
+              {/* A fixed 4:3 well, the same on every card and identical
+                  whether the card is selected — the photo never decides the
+                  card's height. bg-mint rather than transparent so an image
+                  with an alpha channel lands on the brand tint instead of
+                  whatever is behind it. */}
               <div className="relative aspect-[4/3] w-full overflow-hidden bg-mint">
                 {product.image_url ? (
+                  // object-contain, not cover: a whole chicken leg the cashier
+                  // can recognise beats a tightly cropped piece of one.
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={product.image_url}
                     alt=""
-                    className="size-full object-cover"
+                    className="size-full object-contain p-2"
                     loading="lazy"
+                    decoding="async"
                   />
                 ) : (
+                  // A quiet cutlery mark, not a giant letter. Same well, same
+                  // height, so a menu with photos and one without still line up.
                   <span
                     aria-hidden="true"
-                    className="flex size-full items-center justify-center font-display text-3xl font-semibold text-caramel"
+                    className="flex size-full items-center justify-center"
                   >
-                    {product.name.slice(0, 1).toUpperCase()}
+                    <CutleryIcon className="size-8 text-leaf/35" />
                   </span>
                 )}
 
