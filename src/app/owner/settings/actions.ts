@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { uploadImage } from "@/lib/storage";
 import type { Database } from "@/lib/supabase/types";
 
 // Type-only: a "use server" module may export async functions and nothing else.
@@ -12,7 +13,6 @@ import type { FormState } from "@/lib/form-state";
 type SettingsUpdate = Database["public"]["Tables"]["settings"]["Update"];
 
 const BUCKET = "cafe-assets";
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 /** A UPI ID looks like name@bank. Keep it permissive — handles vary by PSP. */
 const UPI_ID_PATTERN = /^[a-zA-Z0-9.\-_]{2,64}@[a-zA-Z]{2,32}$/;
@@ -52,28 +52,14 @@ export async function updateSettings(
     receipt_footer: String(formData.get("receipt_footer") ?? "").trim(),
   };
 
+  // The QR is optional in both directions: no file leaves upi_qr_url alone, so
+  // the receipt keeps generating a QR from the UPI ID above, and ticking
+  // "remove" clears it and hands the receipt back to that generated one.
   const file = formData.get("upi_qr");
   if (file instanceof File && file.size > 0) {
-    if (!file.type.startsWith("image/")) {
-      return { error: "The QR file isn't an image.", success: null };
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      return { error: "QR image is too large. Keep it under 2 MB.", success: null };
-    }
-
-    const extension =
-      file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-    const path = `upi-qr-${Date.now()}.${extension}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: false });
-
-    if (uploadError) {
-      return { error: "Could not upload the QR image. Try again.", success: null };
-    }
-
-    patch.upi_qr_url = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    const uploaded = await uploadImage(supabase, BUCKET, file, "upi-qr-");
+    if ("error" in uploaded) return { error: uploaded.error, success: null };
+    patch.upi_qr_url = uploaded.url;
   } else if (formData.get("remove_qr") === "on") {
     patch.upi_qr_url = null;
   }

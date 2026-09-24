@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { uploadImage } from "@/lib/storage";
 import { toAmountString, toPaisa } from "@/lib/money";
 import type { Database } from "@/lib/supabase/types";
 // Type-only: a "use server" module may export async functions and nothing else,
@@ -15,7 +16,6 @@ type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
 
 const UNIQUE_VIOLATION = "23505";
 const BUCKET = "product-images";
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 interface ParsedProduct {
   name: string;
@@ -53,31 +53,8 @@ function parseProduct(formData: FormData): ParsedProduct | string {
   };
 }
 
-/** Uploads the optional photo and returns its public URL, or an error string. */
-async function uploadImage(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  file: File,
-): Promise<{ url: string } | { error: string }> {
-  if (!file.type.startsWith("image/")) {
-    return { error: "That file isn't an image." };
-  }
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { error: "Image is too large. Keep it under 2 MB." };
-  }
-
-  const extension = file.name.includes(".")
-    ? file.name.split(".").pop()!.toLowerCase().replace(/[^a-z0-9]/g, "")
-    : "jpg";
-  const path = `${crypto.randomUUID()}.${extension || "jpg"}`;
-
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
-
-  if (error) return { error: "Could not upload the image. Try again." };
-
-  return { url: supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl };
-}
+// Upload lives in @/lib/storage — shared with the UPI QR, which was failing
+// for exactly the same reason.
 
 export async function createProduct(
   _prev: FormState,
@@ -93,7 +70,7 @@ export async function createProduct(
   let imageUrl: string | null = null;
   const file = formData.get("image");
   if (file instanceof File && file.size > 0) {
-    const uploaded = await uploadImage(supabase, file);
+    const uploaded = await uploadImage(supabase, BUCKET, file);
     if ("error" in uploaded) return { error: uploaded.error, success: null };
     imageUrl = uploaded.url;
   }
@@ -132,7 +109,7 @@ export async function updateProduct(
 
   const file = formData.get("image");
   if (file instanceof File && file.size > 0) {
-    const uploaded = await uploadImage(supabase, file);
+    const uploaded = await uploadImage(supabase, BUCKET, file);
     if ("error" in uploaded) return { error: uploaded.error, success: null };
     patch.image_url = uploaded.url;
   } else if (formData.get("remove_image") === "on") {
