@@ -95,7 +95,11 @@ export default async function PrintReceiptPage({
       unitPrice: item.unit_price,
       lineTotal: item.line_total,
     })),
-    upi: { id: settings?.upi_id ?? "", uri: upiUri },
+    upi: {
+      id: settings?.upi_id ?? "",
+      uri: upiUri,
+      qrImageUrl: settings?.upi_qr_url ?? null,
+    },
     paperWidthMm: 58,
   };
 

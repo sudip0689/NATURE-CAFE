@@ -30,7 +30,11 @@ const receipt: ReceiptData = {
   lines: [
     { name: "Chicken Roll", quantity: 2, unitPrice: "120.00", lineTotal: "240.00" },
   ],
-  upi: { id: "naturecaffe@okhdfcbank", uri: "upi://pay?pa=naturecaffe%40okhdfcbank" },
+  upi: {
+    id: "naturecaffe@okhdfcbank",
+    uri: "upi://pay?pa=naturecaffe%40okhdfcbank",
+    qrImageUrl: null,
+  },
   paperWidthMm: 58,
 };
 

@@ -41,6 +41,16 @@ export interface ReceiptData {
     id: string;
     /** `upi://pay?…`, or null when no UPI ID is configured. */
     uri: string | null;
+    /**
+     * The owner's own bank QR, when they uploaded one.
+     *
+     * The browser printer never needed this — the page already has the image
+     * on screen. A thermal printer does: it has to fetch and rasterise the
+     * picture itself, and without the URL it could only print a QR generated
+     * from the UPI ID, which is a different code than the one the customer
+     * sees on the preview.
+     */
+    qrImageUrl: string | null;
   };
   /** Paper width in millimetres. 58 today; 80 is the other common roll. */
   paperWidthMm: number;

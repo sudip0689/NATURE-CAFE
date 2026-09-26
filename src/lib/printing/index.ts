@@ -2,6 +2,17 @@ import type { PrintOutcome, ReceiptData, ReceiptPrinter } from "./types";
 
 export type { PrintOutcome, ReceiptData, ReceiptLine, ReceiptPrinter } from "./types";
 
+interface AndroidPrintBridge {
+  printReceipt(receiptJson: string): string;
+}
+
+function androidBridge(): AndroidPrintBridge | null {
+  if (typeof window === "undefined") return null;
+  const bridge = (window as unknown as { NatureCaffeAndroid?: AndroidPrintBridge })
+    .NatureCaffeAndroid;
+  return bridge && typeof bridge.printReceipt === "function" ? bridge : null;
+}
+
 /**
  * The browser printer: prints the receipt route that is already on screen,
  * styled to 58 mm by the `@media print` rules in globals.css.
@@ -14,9 +25,41 @@ const browserPrinter: ReceiptPrinter = {
   id: "browser",
   label: "Browser print",
   isAvailable: () =>
-    typeof window !== "undefined" && typeof window.print === "function",
+    typeof window !== "undefined" &&
+    typeof window.print === "function" &&
+    // Not inside the Android wrapper. A WebView's window.print() is a silent
+    // no-op, so leaving this enabled there would let a failed Bluetooth print
+    // fall through to it and report success with no paper out of the printer.
+    androidBridge() === null,
   print: async () => {
     window.print();
+  },
+};
+
+/**
+ * The Android wrapper's thermal printer.
+ *
+ * The native side owns the Bluetooth connection and the ESC/POS bytes; this
+ * is only the handover. It takes precedence over the browser printer because
+ * it is only ever "available" inside the wrapper, where window.print() does
+ * nothing useful anyway — a WebView has no print dialog of its own, and the
+ * counter wants paper out of the EZO, not a system print sheet.
+ *
+ * The native method is synchronous and returns "OK" or a sentence to show the
+ * cashier, so a failure here surfaces the same way any other print failure
+ * does.
+ */
+const androidThermalPrinter: ReceiptPrinter = {
+  id: "android-escpos",
+  label: "EZO thermal printer",
+  isAvailable: () => androidBridge() !== null,
+  print: async (receipt) => {
+    const bridge = androidBridge();
+    if (!bridge) throw new Error("The printer bridge is not available.");
+
+    const result = bridge.printReceipt(JSON.stringify(receipt));
+    // Anything but OK is a message written for the person at the counter.
+    if (result !== "OK") throw new Error(result);
   },
 };
 
@@ -25,7 +68,7 @@ const browserPrinter: ReceiptPrinter = {
  * registers itself ahead of the browser at startup and takes over; nothing in
  * the billing UI changes when that happens.
  */
-const printers: ReceiptPrinter[] = [browserPrinter];
+const printers: ReceiptPrinter[] = [androidThermalPrinter, browserPrinter];
 
 export function registerPrinter(printer: ReceiptPrinter): void {
   printers.unshift(printer);
