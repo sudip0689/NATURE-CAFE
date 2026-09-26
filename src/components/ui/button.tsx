@@ -62,7 +62,34 @@ export function Button({
       )}
       {...props}
     >
+      {pending ? <Spinner /> : null}
       {pending && pendingLabel ? pendingLabel : children}
     </button>
+  );
+}
+
+/**
+ * Shown while a button is locked.
+ *
+ * Without it a disabled button with changed text reads as a button that has
+ * stopped working — the thermal printer can take several seconds to connect,
+ * and the counter needs to see that something is still happening.
+ */
+function Spinner() {
+  return (
+    <svg
+      className="h-4 w-4 shrink-0 animate-spin"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.3" />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

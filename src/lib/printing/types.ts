@@ -56,14 +56,36 @@ export interface ReceiptData {
   paperWidthMm: number;
 }
 
+/**
+ * Where a print has got to, reported as it happens rather than guessed.
+ *
+ * The counter needs to know the difference between "nothing is happening yet"
+ * and "it is talking to the printer": connecting over Bluetooth to a printer
+ * that is switched off takes several seconds before it fails, and a button
+ * that just sits there looks broken. These come from the driver — the Android
+ * side posts them as it works — so they describe what is actually going on.
+ */
+export type PrintStage = "preparing" | "connecting" | "printing";
+
+export type StageListener = (stage: PrintStage) => void;
+
+/**
+ * Why a print failed, in the only two flavours the counter can act on.
+ *
+ * "disconnected" is anything fixed in Bluetooth settings — radio off, printer
+ * not paired, printer off or out of range — so the UI can offer to open them.
+ * "failed" is everything else, where the useful offer is simply to try again.
+ */
+export type PrintFailure = "disconnected" | "failed";
+
 export type PrintOutcome =
   | { ok: true; via: string }
-  | { ok: false; via: string | null; message: string };
+  | { ok: false; via: string | null; reason: PrintFailure; message: string };
 
 export interface ReceiptPrinter {
   readonly id: string;
   readonly label: string;
   /** Cheap, synchronous-ish capability check. Never throws. */
   isAvailable(): boolean;
-  print(receipt: ReceiptData): Promise<void>;
+  print(receipt: ReceiptData, onStage?: StageListener): Promise<void>;
 }

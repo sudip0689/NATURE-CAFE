@@ -44,7 +44,20 @@ export default async function PrintReceiptPage({
 
   if (!bill) notFound();
 
-  const upiUri = settings?.upi_id
+  /**
+   * A payment QR belongs on a UPI bill and nowhere else.
+   *
+   * A cash sale is settled before the receipt is torn off, so a "scan to pay"
+   * code on it is at best noise and at worst an invitation to pay twice. It
+   * also costs several centimetres of a 58 mm roll on every single order.
+   *
+   * Decided once, here, because the preview on screen and the paper coming
+   * out of the printer are built from this same object — gating it in only
+   * one of them is how they end up disagreeing.
+   */
+  const wantsUpiQr = bill.payment_method === "upi";
+
+  const upiUri = wantsUpiQr && settings?.upi_id
     ? buildUpiUri({
         upiId: settings.upi_id,
         merchantName: settings.upi_name || settings.cafe_name,
@@ -56,8 +69,10 @@ export default async function PrintReceiptPage({
   // Rendered here rather than in the browser: if the print dialog opened
   // before a client-side script finished, the customer would get a blank
   // square where the QR should be.
+  const qrImageUrl = wantsUpiQr ? (settings?.upi_qr_url ?? null) : null;
+
   let qrSvg: string | null = null;
-  if (upiUri && !settings?.upi_qr_url) {
+  if (upiUri && !qrImageUrl) {
     const raw = await QRCode.toString(upiUri, {
       type: "svg",
       margin: 0,
@@ -98,7 +113,7 @@ export default async function PrintReceiptPage({
     upi: {
       id: settings?.upi_id ?? "",
       uri: upiUri,
-      qrImageUrl: settings?.upi_qr_url ?? null,
+      qrImageUrl,
     },
     paperWidthMm: 58,
   };
@@ -128,7 +143,7 @@ export default async function PrintReceiptPage({
       {/* The preview and the print output are the same element. */}
       <div className="flex justify-center">
         <div className="rounded-card border border-brandline shadow-card">
-          <Receipt data={data} qrSvg={qrSvg} qrImageUrl={settings?.upi_qr_url} />
+          <Receipt data={data} qrSvg={qrSvg} qrImageUrl={qrImageUrl} />
         </div>
       </div>
 
@@ -140,7 +155,12 @@ export default async function PrintReceiptPage({
             the printer, reported as failed. */}
         <PrintButton key={bill.id} receipt={data} />
 
-        {!upiUri && !settings?.upi_qr_url ? (
+        {!wantsUpiQr ? (
+          <p className="mt-3 text-center text-sm text-brandmuted">
+            Paid by {bill.payment_method === "cash" ? "cash" : bill.payment_method}, so the
+            receipt prints without a payment QR.
+          </p>
+        ) : !upiUri && !qrImageUrl ? (
           <p className="mt-3 text-center text-sm text-brandmuted">
             No UPI ID configured, so the receipt prints without a QR. Add one in{" "}
             <Link href="/owner/settings" className="underline">

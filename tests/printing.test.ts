@@ -134,4 +134,51 @@ describe("printReceipt failure wording", () => {
       expect(outcome.message).toContain("saved");
     }
   });
+
+  it("separates 'go and connect it' from 'try that again'", async () => {
+    vi.resetModules();
+    const printing = await import("@/lib/printing");
+
+    printing.registerPrinter({
+      id: "unreachable",
+      label: "EZO thermal printer",
+      isAvailable: () => true,
+      print: async () => {
+        throw new printing.PrintError(
+          "disconnected",
+          "Could not reach the printer. Check it is switched on and in range.",
+        );
+      },
+    });
+
+    const outcome = await printing.printReceipt(receipt);
+    expect(outcome.ok).toBe(false);
+    // The button offers "Connect Printer" on this and "Try Again" otherwise,
+    // so the distinction has to survive the trip back from the driver.
+    if (!outcome.ok) expect(outcome.reason).toBe("disconnected");
+  });
+
+  it("reports the stages the driver actually reached", async () => {
+    vi.resetModules();
+    const printing = await import("@/lib/printing");
+
+    printing.registerPrinter({
+      id: "chatty",
+      label: "EZO thermal printer",
+      isAvailable: () => true,
+      print: async (_data, onStage) => {
+        onStage?.("connecting");
+        onStage?.("printing");
+      },
+    });
+
+    const seen: string[] = [];
+    const outcome = await printing.printReceipt(receipt, (stage) => seen.push(stage));
+
+    expect(outcome.ok).toBe(true);
+    // "preparing" is ours, before any driver is asked; the rest come from the
+    // driver as it gets there. Simulating them on a timer would be a lie the
+    // moment a printer took longer or failed early.
+    expect(seen).toEqual(["preparing", "connecting", "printing"]);
+  });
 });

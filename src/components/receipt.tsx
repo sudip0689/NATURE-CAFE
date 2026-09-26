@@ -116,7 +116,7 @@ export function Receipt({
               dangerouslySetInnerHTML={{ __html: qrSvg! }}
             />
           )}
-          <div style={{ marginTop: "1mm" }}>Scan &amp; Pay</div>
+          <div style={{ marginTop: "1mm" }}>Scan to Pay</div>
           {upi.id ? <div>{upi.id}</div> : null}
         </section>
       ) : null}
