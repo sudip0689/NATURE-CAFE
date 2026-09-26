@@ -39,7 +39,13 @@ export const config = {
     /*
      * Everything except static assets. App Router routes never carry a file
      * extension, so excluding these is safe.
+     *
+     * `apk` is here for the Android updater. It downloads the release over
+     * plain HTTP from the native side, which carries no session cookie — so
+     * without this the download would be redirected to /login and the phone
+     * would save the login page under an .apk name and hand that to the
+     * package installer.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|css|js|woff|woff2|ttf|txt|xml|json|webmanifest|html)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|css|js|woff|woff2|ttf|txt|xml|json|webmanifest|html|apk)$).*)",
   ],
 };
