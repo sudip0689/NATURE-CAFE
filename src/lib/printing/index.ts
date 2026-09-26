@@ -103,11 +103,21 @@ export async function printReceipt(receipt: ReceiptData): Promise<PrintOutcome> 
     };
   }
 
+  // Kept from the first (most preferred) printer that failed. A driver throws
+  // a sentence written for the counter — "Bluetooth is off", "check it is
+  // switched on and in range" — and swallowing that in favour of a generic
+  // "printing failed" leaves the cashier with a queue and nothing to act on.
+  let firstReason: string | null = null;
+
   for (const printer of candidates) {
     try {
       await printer.print(receipt);
       return { ok: true, via: printer.id };
-    } catch {
+    } catch (error) {
+      if (firstReason === null) {
+        const reason = error instanceof Error ? error.message.trim() : "";
+        if (reason) firstReason = reason;
+      }
       // Try the next one rather than giving up on the first failure.
       continue;
     }
@@ -116,6 +126,8 @@ export async function printReceipt(receipt: ReceiptData): Promise<PrintOutcome> 
   return {
     ok: false,
     via: null,
-    message: "Printing failed. The bill is saved — try reprinting from Bills.",
+    message: firstReason
+      ? `${firstReason} The bill is saved — you can reprint it from Bills.`
+      : "Printing failed. The bill is saved — try reprinting from Bills.",
   };
 }

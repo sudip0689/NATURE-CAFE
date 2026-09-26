@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   availablePrinters,
@@ -99,5 +99,39 @@ describe("printReceipt", () => {
   it("skips printers that report themselves unavailable", () => {
     registerPrinter(stubPrinter("usb-unplugged", "unavailable"));
     expect(availablePrinters().map((p) => p.id)).not.toContain("usb-unplugged");
+  });
+});
+
+/**
+ * A separate registry-free check: the wording the counter actually sees.
+ *
+ * The driver raises a sentence written for the cashier ("Bluetooth is off…").
+ * The first version of printReceipt caught it and returned a generic "printing
+ * failed", which is what a real EZO print failure showed on the phone — true,
+ * but useless to someone with a queue in front of them.
+ */
+describe("printReceipt failure wording", () => {
+  it("passes the driver's own reason through to the counter", async () => {
+    // A fresh registry: the tests above leave a working printer in the shared
+    // one, and this needs the case where the only driver fails.
+    vi.resetModules();
+    const printing = await import("@/lib/printing");
+
+    printing.registerPrinter({
+      id: "bluetooth-off",
+      label: "EZO thermal printer",
+      isAvailable: () => true,
+      print: async () => {
+        throw new Error("Bluetooth is off. Turn it on and print again.");
+      },
+    });
+
+    const outcome = await printing.printReceipt(receipt);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.message).toContain("Bluetooth is off");
+      // …and still says the sale is not lost.
+      expect(outcome.message).toContain("saved");
+    }
   });
 });

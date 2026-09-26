@@ -29,7 +29,7 @@ export function PrintButton({ receipt }: { receipt: ReceiptData }) {
         fullWidth
         onClick={handlePrint}
         pending={printing}
-        pendingLabel="Opening print…"
+        pendingLabel="Printing…"
       >
         Print receipt
       </Button>

@@ -133,7 +133,12 @@ export default async function PrintReceiptPage({
       </div>
 
       <div className="no-print mx-auto mt-6 max-w-xs">
-        <PrintButton receipt={data} />
+        {/* Keyed to the bill: going from one bill's receipt to another is a
+            client-side navigation, so without this React keeps the same
+            PrintButton instance and a failure message from the previous bill
+            greets you on the next one — a receipt that was never even sent to
+            the printer, reported as failed. */}
+        <PrintButton key={bill.id} receipt={data} />
 
         {!upiUri && !settings?.upi_qr_url ? (
           <p className="mt-3 text-center text-sm text-brandmuted">
