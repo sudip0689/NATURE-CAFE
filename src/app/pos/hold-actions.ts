@@ -132,7 +132,13 @@ export async function deliverOrder(billId: string): Promise<DeliverResult> {
   }
 
   // It is a sale now, so everywhere that counts sales is stale.
-  revalidatePath("/pos");
+  //
+  // Deliberately not "/pos". Revalidating the route the cashier is standing
+  // on makes the client refetch it, which re-runs that page's server
+  // component and pulls the whole menu, the categories, the settings and the
+  // hold list back down from iad1 — five queries and the best part of a
+  // second, to hand over a plate. The till keeps its own state instead: the
+  // delivered card is removed locally the moment the database confirms.
   revalidatePath("/owner/hold-orders");
   revalidatePath("/owner/bills");
   revalidatePath("/owner/sales");

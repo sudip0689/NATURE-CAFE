@@ -27,11 +27,9 @@ const TICK_MS = 30_000;
 
 export function HoldOrders({
   orders,
-  onRefresh,
   onDelivered,
 }: {
   orders: HoldOrder[];
-  onRefresh: () => void;
   /** Hands the delivered order up so the till can offer to print it. */
   onDelivered: (order: { id: string; number: string; total: string }) => void;
 }) {
@@ -137,7 +135,6 @@ export function HoldOrders({
           onClose={() => setOpen(null)}
           onDelivered={(delivered) => {
             setOpen(null);
-            onRefresh();
             onDelivered(delivered);
           }}
         />

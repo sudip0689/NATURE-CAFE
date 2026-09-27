@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { formatMoneyCompact } from "@/lib/money";
 import { CheckIcon, CutleryIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
@@ -40,11 +42,38 @@ export function ProductGrid({
 
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-      {products.map((product) => {
-        const selected = selectedIds.has(product.id);
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          selected={selectedIds.has(product.id)}
+          onToggle={onToggle}
+        />
+      ))}
+    </ul>
+  );
+}
 
-        return (
-          <li key={product.id}>
+/**
+ * One card, and it only re-renders when its own product or its own selected
+ * state changes.
+ *
+ * Without this every keystroke in the search box re-rendered all twenty-one
+ * of them -- about 25ms a letter on a desktop, and several times that on the
+ * phone this actually runs on. The card is cheap; twenty-one of them per
+ * keypress was not.
+ */
+const ProductCard = memo(function ProductCard({
+  product,
+  selected,
+  onToggle,
+}: {
+  product: PosProduct;
+  selected: boolean;
+  onToggle: (product: PosProduct) => void;
+}) {
+  return (
+          <li>
             {/* The whole card is the button. At a counter you aim for the
                 picture, not a 24px "+" in its corner.
                 aria-pressed, because this is a toggle: tapping again takes the
@@ -132,8 +161,5 @@ export function ProductGrid({
               </span>
             </button>
           </li>
-        );
-      })}
-    </ul>
   );
-}
+});

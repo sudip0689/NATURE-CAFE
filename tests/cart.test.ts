@@ -6,6 +6,7 @@ import {
   toBillPayload,
   MAX_LINE_QUANTITY,
   type CartLine,
+  type CartProduct,
 } from "@/lib/cart";
 
 const roll = { id: "p1", name: "Chicken Roll", price: "120.00" };
@@ -115,5 +116,45 @@ describe("cart — price changes cannot travel from the browser", () => {
     expect(serialised).not.toContain("1.00");
     expect(serialised).not.toContain("unitPrice");
     expect(serialised).not.toContain("120");
+  });
+});
+
+/**
+ * Toggle exists so the grid can hold one callback for the life of the screen
+ * instead of a new one per cart change — which is what let the product cards
+ * be memoised, and took search from about 25ms a keystroke to under 8.
+ *
+ * It must behave exactly as the add/remove pair it replaced.
+ */
+describe("toggle", () => {
+  const coffee: CartProduct = { id: "p1", name: "Cold Coffee", price: "99.00" };
+  const soda: CartProduct = { id: "p2", name: "Masala Soda", price: "35.00" };
+
+  it("puts an item on the order and takes it off again", () => {
+    const on = cartReducer([], { type: "toggle", product: coffee });
+    expect(on).toHaveLength(1);
+    expect(on[0]).toMatchObject({ productId: "p1", quantity: 1 });
+
+    const off = cartReducer(on, { type: "toggle", product: coffee });
+    expect(off).toHaveLength(0);
+  });
+
+  it("removes the whole line however many are on it", () => {
+    // A selection, not a counter: three of them still come off in one tap.
+    let lines = cartReducer([], { type: "toggle", product: coffee });
+    lines = cartReducer(lines, { type: "increment", productId: "p1" });
+    lines = cartReducer(lines, { type: "increment", productId: "p1" });
+    expect(lines[0].quantity).toBe(3);
+
+    expect(cartReducer(lines, { type: "toggle", product: coffee })).toHaveLength(0);
+  });
+
+  it("leaves the rest of the order alone", () => {
+    let lines = cartReducer([], { type: "toggle", product: coffee });
+    lines = cartReducer(lines, { type: "toggle", product: soda });
+    lines = cartReducer(lines, { type: "toggle", product: coffee });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0].productId).toBe("p2");
   });
 });

@@ -28,12 +28,28 @@ export type CartAction =
   | { type: "increment"; productId: string }
   | { type: "decrement"; productId: string }
   | { type: "remove"; productId: string }
+  /**
+   * On if it is off, off if it is on.
+   *
+   * The grid used to work this out itself and dispatch add or remove. That
+   * meant its onToggle had to close over the current selection, so it was a
+   * new function on every cart change -- which made memoising the product
+   * cards impossible, and every keystroke in the search box re-rendered all
+   * twenty-one of them. Deciding it here lets the grid hold one callback for
+   * the life of the screen.
+   */
+  | { type: "toggle"; product: CartProduct }
   | { type: "clear" };
 
 export const MAX_LINE_QUANTITY = 999;
 
 export function cartReducer(lines: CartLine[], action: CartAction): CartLine[] {
   switch (action.type) {
+    case "toggle":
+      return lines.some((line) => line.productId === action.product.id)
+        ? cartReducer(lines, { type: "remove", productId: action.product.id })
+        : cartReducer(lines, { type: "add", product: action.product });
+
     case "add": {
       const existing = lines.find((line) => line.productId === action.product.id);
       if (existing) {

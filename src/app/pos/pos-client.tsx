@@ -164,6 +164,19 @@ export function PosClient({
     }
   }, []);
 
+  /**
+   * One callback for the life of the screen, so the cards can be memoised.
+   *
+   * Tapping an item already on the order takes the whole line off, however
+   * many of it there are -- it is a selection, not a counter. The reducer
+   * decides which way round that is, which is what keeps this stable.
+   * Purely local: nothing reaches the database until the order is placed.
+   */
+  const toggleProduct = useCallback((product: PosProduct) => {
+    dispatch({ type: "toggle", product });
+    setBillingError(null);
+  }, []);
+
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
     setClosingDrawer(true);
@@ -223,9 +236,49 @@ export function PosClient({
       });
 
       if (result.error || !result.bill) {
+        // The cart is left exactly as it was, so "Try again" retries this
+        // order rather than making the customer order it again. The same
+        // requestId goes with it, so a retry of a request that actually
+        // landed returns the first bill instead of a second one.
         setBillingError(result.error);
         return;
       }
+
+      // Narrowing does not survive into the setState callback below.
+      const placed = result.bill;
+
+      /**
+       * The new card is assembled from the cart that was just sent, not
+       * fetched back.
+       *
+       * Everything on it is already here — the lines are the cart, and the
+       * number, id and total come back from the insert itself, priced by the
+       * server. Asking the database to describe an order we just described to
+       * it is two round trips for information we are holding.
+       */
+      setHeld((current) => [
+        ...current,
+        {
+          id: placed.id,
+          bill_number: placed.number,
+          customer_name: customerName.trim() || "Walk-in Customer",
+          customer_mobile: customerMobile.trim() || null,
+          subtotal: toAmountString(totals.subtotalPaisa),
+          discount: toAmountString(totals.discountPaisa),
+          total: placed.total,
+          payment_method: paymentMethod,
+          created_at: new Date().toISOString(),
+          held_at: new Date().toISOString(),
+          items: lines.map((line) => ({
+            product_name: line.name,
+            quantity: line.quantity,
+            unit_price: line.unitPrice,
+            line_total: toAmountString(
+              Math.round(Number(line.unitPrice) * 100) * line.quantity,
+            ),
+          })),
+        },
+      ]);
 
       setCompletedBill({ ...result.bill, delivered: false });
       setPrintState("idle");
@@ -240,8 +293,6 @@ export function PosClient({
       setCustomerMobile("");
       setQuery("");
       setRequestId(crypto.randomUUID());
-      // The order it just created is now on the pass.
-      refreshHeld();
     });
   }
 
@@ -307,8 +358,10 @@ export function PosClient({
         {tab === "hold" ? (
           <HoldOrders
             orders={held}
-            onRefresh={refreshHeld}
             onDelivered={(order) => {
+              // Gone from the list the moment the database confirmed it, from
+              // local state -- no refetch to discover what we were just told.
+              setHeld((current) => current.filter((held) => held.id !== order.id));
               setCompletedBill({ ...order, delivered: true });
               setPrintState("idle");
               setPrintProblem(null);
@@ -365,18 +418,7 @@ export function PosClient({
           <ProductGrid
             products={visibleProducts}
             selectedIds={selectedIds}
-            onToggle={(product) => {
-              // Tapping an item already on the order takes the whole line off,
-              // however many of it there are — it is a selection, not a
-              // counter. Purely local: nothing reaches the database until the
-              // cashier generates the bill.
-              dispatch(
-                selectedIds.has(product.id)
-                  ? { type: "remove", productId: product.id }
-                  : { type: "add", product },
-              );
-              setBillingError(null);
-            }}
+            onToggle={toggleProduct}
           />
         </div>
           </>
