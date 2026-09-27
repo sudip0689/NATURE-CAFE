@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signOut } from "@/app/login/actions";
-import { CrownIcon } from "@/components/icons";
+import { CrownIcon, SignOutIcon } from "@/components/icons";
 import { NatureCaffeMark } from "@/app/login/welcome-art";
 import { cn } from "@/lib/cn";
 import { BottomNav, HeaderNav } from "./app-nav";
@@ -93,6 +93,7 @@ export function AppHeader({
   wide = false,
   headerExtra,
   menu,
+  variant = "default",
 }: {
   cafeName: string;
   tagline?: string;
@@ -101,14 +102,27 @@ export function AppHeader({
   wide?: boolean;
   headerExtra?: React.ReactNode;
   menu?: React.ReactNode;
+  /**
+   * "counter" is the till's header.
+   *
+   * It reads the café name larger and spends nothing on words for its
+   * actions: Bills and Sign out become icons, which is what buys the room.
+   * Management keeps the default, where the header also carries nav links and
+   * an owner badge and a row of icons would be a guessing game.
+   */
+  variant?: "default" | "counter";
 }) {
+  const counter = variant === "counter";
   return (
     // no-print: /bills/[id]/print renders inside this shell, and app chrome
     // must never reach the thermal printer.
     <header className="no-print sticky top-0 z-20 shrink-0 border-b border-brandline/70 bg-ivory/95 backdrop-blur-sm">
       <div
         className={cn(
-          "mx-auto flex h-appheader w-full items-center gap-2 px-4 sm:px-5 lg:px-6",
+          "mx-auto flex w-full items-center gap-2 px-4 sm:px-5 lg:px-6",
+          // 64px at the till: the name is bigger, and the icon actions need
+          // a 44px touch target to sit in comfortably.
+          counter ? "h-16" : "h-appheader",
           wide ? "max-w-wide" : "max-w-app lg:max-w-wide",
         )}
       >
@@ -119,12 +133,17 @@ export function AppHeader({
           href="/"
           className="flex min-h-touch min-w-0 flex-1 items-center gap-2 rounded-xl transition-colors duration-150 active:bg-mint/60"
         >
-          <NatureCaffeMark className="w-7 shrink-0" />
+          <NatureCaffeMark className={cn("shrink-0", counter ? "w-8" : "w-7")} />
           <span className="min-w-0">
             {/* The two-tone wordmark is the brand; a café that renamed itself
                 in Settings gets its own name instead, or the header would
                 quietly ignore that setting. */}
-            <span className="block truncate text-[0.98rem] font-bold leading-none tracking-[-0.01em]">
+            <span
+              className={cn(
+                "block truncate font-bold leading-none tracking-[-0.01em]",
+                counter ? "text-[1.15rem]" : "text-[0.98rem]",
+              )}
+            >
               {cafeName.trim().toLowerCase() === "nature caffe" ? (
                 <>
                   <span className="text-forest">Nature</span>{" "}
@@ -135,7 +154,12 @@ export function AppHeader({
               )}
             </span>
             {eyebrow ? (
-              <span className="mt-0.5 block truncate text-[0.55rem] font-medium uppercase tracking-[0.16em] text-brandmuted">
+              <span
+                className={cn(
+                  "mt-0.5 block truncate font-medium uppercase tracking-[0.16em] text-brandmuted",
+                  counter ? "text-[0.7rem]" : "text-[0.55rem]",
+                )}
+              >
                 {eyebrow}
               </span>
             ) : tagline ? (
@@ -151,12 +175,26 @@ export function AppHeader({
         {headerExtra}
 
         <form action={signOut} className="shrink-0">
-          <button
-            type="submit"
-            className="flex min-h-touch items-center rounded-full px-3 text-xs font-medium text-brandmuted transition-colors duration-150 hover:bg-mint hover:text-forest active:bg-mint active:text-forest sm:px-3.5"
-          >
-            Sign out
-          </button>
+          {counter ? (
+            // The word costs about 60px of a 360px header, and the cashier
+            // signs out once a day. Same form, same action — only the label
+            // moves from the screen to the accessibility tree.
+            <button
+              type="submit"
+              aria-label="Sign out"
+              title="Sign out"
+              className="flex size-11 items-center justify-center rounded-full text-brandmuted transition-all duration-150 hover:bg-mint hover:text-forest active:scale-95 active:bg-mint active:text-forest"
+            >
+              <SignOutIcon className="size-5" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className="flex min-h-touch items-center rounded-full px-3 text-xs font-medium text-brandmuted transition-colors duration-150 hover:bg-mint hover:text-forest active:bg-mint active:text-forest sm:px-3.5"
+            >
+              Sign out
+            </button>
+          )}
         </form>
       </div>
     </header>
@@ -175,6 +213,35 @@ export function HeaderLink({
     <Link
       href={href}
       className="flex min-h-touch shrink-0 items-center rounded-full px-3 text-xs font-medium text-brandink transition-colors duration-150 hover:bg-mint hover:text-forest active:bg-mint active:text-forest sm:text-sm"
+    >
+      {children}
+    </Link>
+  );
+}
+
+/**
+ * An icon action in the till's header.
+ *
+ * 44px of touch around a 20px icon: the visible mark is small because the
+ * header is small, but a thumb at a counter is not, and the tap target is
+ * what it actually has to hit. The label is still announced — it has only
+ * stopped taking up horizontal space.
+ */
+export function HeaderIconLink({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      title={label}
+      className="flex size-11 shrink-0 items-center justify-center rounded-full text-brandink transition-all duration-150 hover:bg-mint hover:text-forest active:scale-95 active:bg-mint active:text-forest"
     >
       {children}
     </Link>

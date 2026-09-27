@@ -3,7 +3,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings";
-import { AppHeader, HeaderLink } from "@/components/shell/app-shell";
+import { AppHeader, HeaderIconLink } from "@/components/shell/app-shell";
+import { GearIcon, ReceiptIcon } from "@/components/icons";
 import { EmptyState } from "@/components/ui/states";
 import { PosClient } from "./pos-client";
 import type { PosProduct } from "./product-grid";
@@ -64,10 +65,17 @@ export default async function PosPage() {
         cafeName={settings?.cafe_name || "Nature Caffe"}
         eyebrow="Billing"
         wide
+        variant="counter"
         headerExtra={
           <>
-            <HeaderLink href="/bills">Bills</HeaderLink>
-            {isOwner ? <HeaderLink href="/owner">Manage</HeaderLink> : null}
+            <HeaderIconLink href="/bills" label="Bills">
+              <ReceiptIcon className="size-5" />
+            </HeaderIconLink>
+            {isOwner ? (
+              <HeaderIconLink href="/owner" label="Manage">
+                <GearIcon className="size-5" />
+              </HeaderIconLink>
+            ) : null}
           </>
         }
       />
