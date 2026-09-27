@@ -1,6 +1,7 @@
 import { getSettings } from "@/lib/settings";
 import { ErrorNote } from "@/components/ui/states";
 import { SettingsForm } from "./settings-form";
+import { AppUpdateSection } from "./app-update";
 import { PageHeader } from "@/components/shell/page";
 
 export const metadata = { title: "Settings · Nature Caffe" };
@@ -23,6 +24,10 @@ export default async function SettingsPage() {
           The settings row is missing. Re-run migration 0001 — it seeds exactly one.
         </ErrorNote>
       )}
+
+      {/* Renders nothing in a browser: there is no APK to update there, and
+          the web app is already whatever Vercel last deployed. */}
+      <AppUpdateSection />
     </div>
   );
 }
