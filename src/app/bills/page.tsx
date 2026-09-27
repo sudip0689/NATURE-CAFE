@@ -19,6 +19,9 @@ export default async function RecentBillsPage() {
     )
     // Deleted bills are still rows; every read has to say it wants live ones.
     .is("deleted_at", null)
+    // And a sale is a delivered order: an order still on the pass belongs in
+    // Hold Orders, not in the takings.
+    .eq("status", "delivered")
     .order("created_at", { ascending: false })
     .limit(50);
 

@@ -103,3 +103,53 @@ export function todayInKolkata(): string {
     timeZone: TZ,
   }).format(new Date());
 }
+
+/**
+ * How long an order has been waiting, in the words the counter uses.
+ *
+ * Timezone-free on purpose: this is a difference between two instants, so it
+ * is the same number wherever the phone thinks it is. Only the clock time
+ * beside it is formatted in Asia/Kolkata, the same as every other time in
+ * this app and on the receipts.
+ *
+ * Clamped at zero. The timestamp comes from the database and the clock from
+ * the device, and those disagree by a second or two often enough that an
+ * order would otherwise appear to have been delivered before it was placed.
+ */
+export function formatWaited(sinceIso: string, now: Date = new Date()): string {
+  const started = new Date(sinceIso).getTime();
+  if (!Number.isFinite(started)) return "just now";
+
+  const minutes = Math.max(0, Math.floor((now.getTime() - started) / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+}
+
+/**
+ * "12:42 pm" for an order placed today, "27 Sep, 12:42 pm" for an older one.
+ *
+ * A hold list should not make anyone work out which day 12:42 was: if an
+ * order has been sitting since yesterday, that is the first thing to say
+ * about it.
+ */
+export function formatPlacedAt(iso: string, now: Date = new Date()): string {
+  const sameDay =
+    new Intl.DateTimeFormat("en-IN", { timeZone: TZ, dateStyle: "short" }).format(
+      new Date(iso),
+    ) ===
+    new Intl.DateTimeFormat("en-IN", { timeZone: TZ, dateStyle: "short" }).format(now);
+
+  if (sameDay) return formatTime(iso);
+
+  const day = new Intl.DateTimeFormat("en-IN", {
+    timeZone: TZ,
+    day: "numeric",
+    month: "short",
+  }).format(new Date(iso));
+
+  return `${day}, ${formatTime(iso)}`;
+}

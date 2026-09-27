@@ -12,6 +12,8 @@ import type { PaymentMethod } from "@/lib/supabase/types";
 import { cn } from "@/lib/cn";
 import { CartIcon, ChevronRight, SearchIcon } from "@/components/icons";
 import { OrderPanel } from "./order-panel";
+import { HoldOrders } from "./hold-orders";
+import { listHoldOrders, type HoldOrder } from "./hold-actions";
 import { ProductGrid, type PosProduct } from "./product-grid";
 
 const ALL = "all";
@@ -19,9 +21,12 @@ const ALL = "all";
 export function PosClient({
   products,
   categories,
+  initialHoldOrders,
 }: {
   products: PosProduct[];
   categories: ReadonlyArray<{ id: string; name: string }>;
+  /** Rendered with the page, so the badge is right on first paint. */
+  initialHoldOrders: HoldOrder[];
 }) {
   const [lines, dispatch] = useReducer(cartReducer, [] as CartLine[]);
   const [query, setQuery] = useState("");
@@ -42,11 +47,26 @@ export function PosClient({
   const [closingDrawer, setClosingDrawer] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  /**
+   * The order the dialog is talking about, and whether it is finished.
+   *
+   * `delivered` is what decides between "on hold, come back to print it" and
+   * "delivered, here is the bill" -- the same dialog serves both ends of the
+   * workflow rather than there being two nearly identical ones.
+   */
   const [completedBill, setCompletedBill] = useState<{
     id: string;
     number: string;
     total: string;
+    delivered: boolean;
   } | null>(null);
+
+  /** "New Order" or "Hold Orders". */
+  const [tab, setTab] = useState<"order" | "hold">("order");
+  const [held, setHeld] = useState<HoldOrder[]>(initialHoldOrders);
+  // The result is all that matters here; the list simply updates when it
+  // arrives, and a spinner over four cards would be more noise than news.
+  const [, startRefresh] = useTransition();
 
   // One idempotency key per order, reused across every retry of that order, so
   // a double-tap or a flaky-wifi retry returns the first bill instead of
@@ -80,6 +100,29 @@ export function PosClient({
   }, [products, query, activeCategory]);
 
   const mobileError = validateMobile(customerMobile);
+
+  /**
+   * Re-reads the hold list.
+   *
+   * Called when it could have changed — an order placed, an order delivered,
+   * the tab opened, the app coming back to the foreground — rather than on a
+   * clock. The waiting times on screen tick locally and need none of this.
+   */
+  const refreshHeld = useCallback(() => {
+    startRefresh(async () => {
+      setHeld(await listHoldOrders());
+    });
+  }, []);
+
+  // Coming back to the till after a while: someone else may have delivered
+  // an order, or the app may have been in the background since breakfast.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshHeld();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshHeld]);
 
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
@@ -144,8 +187,10 @@ export function PosClient({
         return;
       }
 
-      setCompletedBill(result.bill);
+      setCompletedBill({ ...result.bill, delivered: false });
       setDrawerOpen(false);
+      // The order it just created is now on the pass.
+      refreshHeld();
     });
   }
 
@@ -179,7 +224,46 @@ export function PosClient({
   return (
     <div className="flex flex-1 flex-col lg:min-h-0 lg:flex-row">
       <section className="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">
-        <div className="sticky top-0 z-10 space-y-3 border-b border-brandline bg-ivory/95 px-4 py-3 backdrop-blur">
+        {/* New Order / Hold Orders. Two buttons rather than a screen of its
+            own: the cashier moves between ringing up and handing over
+            constantly, and a navigation would lose the cart every time. */}
+        <div className="sticky top-0 z-10 flex gap-2 border-b border-brandline bg-ivory/95 px-4 pt-3 backdrop-blur">
+          <WorkTab active={tab === "order"} onClick={() => setTab("order")}>
+            New Order
+          </WorkTab>
+          <WorkTab
+            active={tab === "hold"}
+            onClick={() => {
+              setTab("hold");
+              refreshHeld();
+            }}
+          >
+            Hold Orders
+            {held.length > 0 ? (
+              <span
+                key={held.length}
+                className={cn(
+                  "count-pop tabular ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-px text-[0.7rem] font-bold",
+                  tab === "hold" ? "bg-white/20 text-white" : "bg-caramel text-white",
+                )}
+              >
+                {held.length}
+              </span>
+            ) : null}
+          </WorkTab>
+        </div>
+
+        {tab === "hold" ? (
+          <HoldOrders
+            orders={held}
+            onRefresh={refreshHeld}
+            onDelivered={(order) =>
+              setCompletedBill({ ...order, delivered: true })
+            }
+          />
+        ) : (
+          <>
+        <div className="sticky top-[var(--spacing-worktabs)] z-10 space-y-3 border-b border-brandline bg-ivory/95 px-4 py-3 backdrop-blur">
           <div className="relative">
             <SearchIcon
               className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-brandmuted"
@@ -239,6 +323,8 @@ export function PosClient({
             }}
           />
         </div>
+          </>
+        )}
       </section>
 
       {/* Counter screen: the order sits permanently beside the menu. */}
@@ -334,10 +420,14 @@ export function PosClient({
             aria-labelledby="bill-done-heading"
             className="w-full max-w-sm rounded-sheet bg-white p-6 text-center shadow-sheet"
           >
-            {/* The only place green appears at full strength: money landed. */}
+            {/* Amber, not green. The order is placed, not finished — green is
+                kept for the moment it is actually handed over. */}
             <div
               aria-hidden="true"
-              className="mx-auto flex size-14 items-center justify-center rounded-full bg-mint text-2xl text-leaf"
+              className={cn(
+                "count-pop mx-auto flex size-14 items-center justify-center rounded-full text-2xl",
+                completedBill.delivered ? "bg-mint text-leaf" : "bg-sand text-caramel",
+              )}
             >
               ✓
             </div>
@@ -346,7 +436,7 @@ export function PosClient({
               id="bill-done-heading"
               className="mt-4 font-display text-xl font-semibold text-brandink"
             >
-              Bill saved
+              {completedBill.delivered ? "Order delivered" : "Order on hold"}
             </h2>
             <p className="tabular mt-1 text-sm text-brandmuted">
               {completedBill.number}
@@ -355,13 +445,24 @@ export function PosClient({
               {formatMoney(completedBill.total)}
             </p>
 
+            {completedBill.delivered ? null : (
+              <p className="mt-3 text-sm text-brandmuted">
+                It is waiting in Hold Orders. Print the bill once it has been
+                handed over.
+              </p>
+            )}
+
             <div className="mt-6 space-y-2">
-              <Link
-                href={`/bills/${completedBill.id}/print`}
-                className="inline-flex min-h-touch-lg w-full items-center justify-center rounded-control border border-brandline bg-white px-5 text-base font-medium text-brandink hover:bg-ivory"
-              >
-                Print receipt
-              </Link>
+              {/* Printing belongs after delivery, so it only appears once the
+                  order has actually been handed over. */}
+              {completedBill.delivered ? (
+                <Link
+                  href={`/bills/${completedBill.id}/print`}
+                  className="inline-flex min-h-touch-lg w-full items-center justify-center rounded-control border border-brandline bg-white px-5 text-base font-medium text-brandink hover:bg-ivory"
+                >
+                  Print bill
+                </Link>
+              ) : null}
               {/* Autofocused: the cashier's next move is almost always the
                   next customer, and they shouldn't have to aim for it. */}
               <Button size="lg" fullWidth autoFocus onClick={startNextOrder}>
@@ -396,6 +497,41 @@ function CategoryTab({
         active
           ? "border-forest bg-forest text-white"
           : "border-brandline bg-white text-brandink hover:bg-mint",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * New Order / Hold Orders.
+ *
+ * Sits above the search box rather than in the app header: this is a choice
+ * about what the till is doing right now, not navigation, and the cart must
+ * survive switching between them.
+ */
+function WorkTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "flex min-h-11 flex-1 items-center justify-center gap-1 rounded-t-xl border-b-2 px-3 text-sm font-semibold",
+        "touch-manipulation transition-all duration-150 active:scale-[0.98]",
+        active
+          ? "border-forest bg-forest text-white"
+          : "border-transparent bg-white/60 text-brandmuted hover:bg-white",
       )}
     >
       {children}

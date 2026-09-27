@@ -21,6 +21,15 @@
 export type UserRole = "owner" | "cashier";
 export type PaymentMethod = "cash" | "upi" | "card";
 
+/**
+ * Where an order is in its life.
+ *
+ * "hold" from the moment the counter rings it up until the food is handed
+ * over; "delivered" after that. Only a delivered order is a sale — the
+ * takings, the bills list and the export all count it then and not before.
+ */
+export type BillStatus = "hold" | "delivered";
+
 export interface Database {
   public: {
     Tables: {
@@ -117,6 +126,9 @@ export interface Database {
           created_at: string;
           deleted_at: string | null;
           deleted_by: string | null;
+          status: BillStatus;
+          held_at: string | null;
+          delivered_at: string | null;
         };
         Insert: {
           id?: string;
@@ -213,6 +225,7 @@ export interface Database {
           todays_bills: number;
           todays_sales: string;
           known_customers: number;
+          held_orders: number;
         }[];
       };
       get_sales_summary: {
@@ -257,6 +270,17 @@ export interface Database {
         };
         Returns: {
           out_id: string;
+          out_bill_number: string;
+          out_total: string;
+        }[];
+      };
+      deliver_bill: {
+        Args: {
+          /** profiles.id of whoever the server says is signed in. */
+          p_actor: string;
+          p_bill_id: string;
+        };
+        Returns: {
           out_bill_number: string;
           out_total: string;
         }[];

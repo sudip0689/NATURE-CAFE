@@ -87,6 +87,7 @@
 
   /* Touch targets sized for a counter, not a desk.
      A cashier hits these with a thumb, mid-conversation. */
+  --spacing-worktabs: 2.75rem;
   --spacing-touch: 3rem;
   --spacing-touch-lg: 3.5rem;
 

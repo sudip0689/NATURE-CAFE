@@ -7,6 +7,7 @@ import { AppHeader, HeaderIconLink } from "@/components/shell/app-shell";
 import { GearIcon, ReceiptIcon } from "@/components/icons";
 import { EmptyState } from "@/components/ui/states";
 import { PosClient } from "./pos-client";
+import { listHoldOrders } from "./hold-actions";
 import type { PosProduct } from "./product-grid";
 
 export const metadata = { title: "Billing · Nature Caffe" };
@@ -20,7 +21,9 @@ export default async function PosPage() {
   // The guard joins the same batch rather than gating it. Waiting for the
   // profile before even asking for the menu meant the till opened two round
   // trips slow, every time — and this is the screen that must open fastest.
-  const [user, { data: products }, { data: categories }, settings] =
+  // The held orders join the same batch as the menu, so the Hold Orders count
+  // is right on first paint rather than appearing a moment later.
+  const [user, { data: products }, { data: categories }, settings, heldOrders] =
     await Promise.all([
       requireUser(),
       supabase
@@ -36,6 +39,7 @@ export default async function PosPage() {
         .order("sort_order")
         .order("name"),
       getSettings(),
+      listHoldOrders(),
     ]);
 
   /**
@@ -102,7 +106,11 @@ export default async function PosPage() {
           />
         </div>
       ) : (
-        <PosClient products={menu} categories={categories ?? []} />
+        <PosClient
+          products={menu}
+          categories={categories ?? []}
+          initialHoldOrders={heldOrders}
+        />
       )}
     </div>
   );

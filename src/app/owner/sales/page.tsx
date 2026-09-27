@@ -32,6 +32,9 @@ export default async function SalesPage({
     )
     // Deleted bills are still rows; every read has to say it wants live ones.
     .is("deleted_at", null)
+    // And a sale is a delivered order: an order still on the pass belongs in
+    // Hold Orders, not in the takings.
+    .eq("status", "delivered")
       .gte("created_at", kolkataDayStart(from))
       .lt("created_at", kolkataDayAfter(to))
       .order("created_at", { ascending: false })

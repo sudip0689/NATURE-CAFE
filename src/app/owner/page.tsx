@@ -33,6 +33,9 @@ export default async function ManagementDashboard() {
       .select("id")
       // Deleted bills are still rows; every read has to say it wants live ones.
       .is("deleted_at", null)
+      // And a sale is a delivered order: an order still on the pass belongs in
+      // Hold Orders, not in the takings.
+      .eq("status", "delivered")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -42,6 +45,7 @@ export default async function ManagementDashboard() {
   const todaysBills = summary?.todays_bills ?? 0;
   const todaysSales = summary?.todays_sales ?? "0";
   const customers = summary?.known_customers ?? 0;
+  const heldCount = summary?.held_orders ?? 0;
 
   return (
     <div className="space-y-6">
@@ -93,6 +97,17 @@ export default async function ManagementDashboard() {
             get one readable column instead. The brief allows this: "a clean
             two-column grid on mobile where appropriate". */}
         <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3">
+          <ManageCard
+            href="/owner/hold-orders"
+            tone="brown"
+            icon={<BoltIcon className="size-6" />}
+            title="Hold Orders"
+            description={
+              heldCount === 0
+                ? "Nothing waiting to be handed over"
+                : ` waiting to be handed over`
+            }
+          />
           <ManageCard
             href="/owner/products"
             tone="green"
