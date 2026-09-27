@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useReducer, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState, useTransition } from "react";
 
 import { cartReducer, cartTotals, toBillPayload, type CartLine } from "@/lib/cart";
 import { formatMoney, formatMoneyCompact, toAmountString } from "@/lib/money";
@@ -10,7 +10,7 @@ import { generateBill } from "./actions";
 import { validateMobile } from "@/lib/validation";
 import type { PaymentMethod } from "@/lib/supabase/types";
 import { cn } from "@/lib/cn";
-import { CartIcon, ChevronRight } from "@/components/icons";
+import { CartIcon, ChevronRight, SearchIcon } from "@/components/icons";
 import { OrderPanel } from "./order-panel";
 import { ProductGrid, type PosProduct } from "./product-grid";
 
@@ -31,6 +31,15 @@ export function PosClient({
   const [discount, setDiscount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  /**
+   * Held for the length of the closing slide, then dropped.
+   *
+   * On a timer rather than on animationend: if that event is missed — a
+   * backgrounded tab, reduced-motion turning the animation off entirely — the
+   * sheet would stay on screen over the till with no way to shift it. A
+   * timeout always fires.
+   */
+  const [closingDrawer, setClosingDrawer] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [completedBill, setCompletedBill] = useState<{
@@ -72,6 +81,17 @@ export function PosClient({
 
   const mobileError = validateMobile(customerMobile);
 
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    setClosingDrawer(true);
+  }, []);
+
+  useEffect(() => {
+    if (!closingDrawer) return;
+    const timer = setTimeout(() => setClosingDrawer(false), 200);
+    return () => clearTimeout(timer);
+  }, [closingDrawer]);
+
   // Lock the page behind the drawer, or the grid scrolls under the cart.
   useEffect(() => {
     if (!drawerOpen) return;
@@ -85,11 +105,11 @@ export function PosClient({
   useEffect(() => {
     if (!drawerOpen) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawerOpen(false);
+      if (event.key === "Escape") closeDrawer();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen]);
+  }, [drawerOpen, closeDrawer]);
 
   function startNextOrder() {
     dispatch({ type: "clear" });
@@ -160,14 +180,20 @@ export function PosClient({
     <div className="flex flex-1 flex-col lg:min-h-0 lg:flex-row">
       <section className="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">
         <div className="sticky top-0 z-10 space-y-3 border-b border-brandline bg-ivory/95 px-4 py-3 backdrop-blur">
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search the menu…"
-            aria-label="Search the menu"
-            className="w-full min-h-touch rounded-control border border-brandline bg-white px-4 text-base text-brandink placeholder:text-brandmuted focus:border-leaf focus:outline-none"
-          />
+          <div className="relative">
+            <SearchIcon
+              className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-brandmuted"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search the menu…"
+              aria-label="Search the menu"
+              className="w-full min-h-touch rounded-control border border-brandline bg-white pl-10 pr-4 text-base text-brandink placeholder:text-brandmuted focus:border-leaf focus:outline-none"
+            />
+          </div>
 
           <div
             role="tablist"
@@ -231,7 +257,8 @@ export function PosClient({
           onClick={() => setDrawerOpen(true)}
           className={cn(
             "flex min-h-touch-lg w-full items-center gap-3 rounded-2xl px-4 text-left",
-            "touch-manipulation transition-colors",
+            "touch-manipulation transition-all duration-150",
+            totals.itemCount > 0 && "active:scale-[0.98]",
             totals.itemCount === 0
               ? "border border-dashed border-brandline bg-ivory text-brandmuted"
               : "bg-forest text-white shadow-[0_4px_16px_rgba(14,90,53,0.3)] active:bg-leaf",
@@ -244,7 +271,16 @@ export function PosClient({
             )}
           />
 
-          <span className="min-w-0 flex-1 truncate font-semibold">
+          {/* Keyed on the count, so React remounts it and the pop replays each
+              time an item goes on or comes off. Without the key the text
+              changes with no acknowledgement that the tap landed. */}
+          <span
+            key={totals.itemCount}
+            className={cn(
+              "min-w-0 flex-1 truncate font-semibold",
+              totals.itemCount > 0 && "count-pop",
+            )}
+          >
             {totals.itemCount === 0
               ? "Tap an item to start"
               : `View Order · ${totals.itemCount} ${
@@ -263,25 +299,28 @@ export function PosClient({
         </button>
       </div>
 
-      {drawerOpen ? (
+      {drawerOpen || closingDrawer ? (
         <div className="fixed inset-0 z-30 lg:hidden">
           <button
             type="button"
             aria-label="Close order"
-            onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 bg-brandink/40"
+            onClick={closeDrawer}
+            className={cn("absolute inset-0 bg-brandink/40", !closingDrawer && "scrim-enter")}
           />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Current order"
-            className="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-sheet bg-white shadow-sheet"
+            className={cn(
+              "absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-sheet bg-white shadow-sheet",
+              closingDrawer ? "sheet-leave" : "sheet-enter",
+            )}
           >
             <div className="flex justify-center pt-3" aria-hidden="true">
               <span className="h-1 w-10 rounded-full bg-brandline" />
             </div>
             <div className="flex min-h-0 flex-1 flex-col">
-              <OrderPanel {...panelProps} onClose={() => setDrawerOpen(false)} />
+              <OrderPanel {...panelProps} onClose={closeDrawer} />
             </div>
           </div>
         </div>
@@ -352,7 +391,8 @@ function CategoryTab({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "min-h-touch shrink-0 rounded-full border px-4 text-base font-medium transition-colors touch-manipulation",
+        "min-h-touch shrink-0 rounded-full border px-4 text-base font-medium touch-manipulation",
+        "transition-all duration-150 active:scale-[0.97]",
         active
           ? "border-forest bg-forest text-white"
           : "border-brandline bg-white text-brandink hover:bg-mint",

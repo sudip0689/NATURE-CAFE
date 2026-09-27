@@ -55,7 +55,9 @@ export function ProductGrid({
               onClick={() => onToggle(product)}
               className={cn(
                 "group relative flex h-full w-full flex-col overflow-hidden rounded-card text-left",
-                "transition-all duration-150 touch-manipulation",
+                // 150ms, and the press gives a little under the thumb so a tap
+                // is acknowledged before the state has even changed.
+                "transition-all duration-150 touch-manipulation active:scale-[0.98]",
                 // The border width never changes. Selecting used to swap it
                 // from 1px to 2px, which with border-box shrank the image well
                 // by 2px — the picture nudged every time a card was tapped.
@@ -69,12 +71,16 @@ export function ProductGrid({
                   : "bg-white hover:bg-ivory",
               )}
             >
-              {/* A fixed 4:3 well, the same on every card and identical
+              {/* A fixed 3:2 well, the same on every card and identical
                   whether the card is selected — the photo never decides the
                   card's height. bg-mint rather than transparent so an image
                   with an alpha channel lands on the brand tint instead of
-                  whatever is behind it. */}
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-mint">
+                  whatever is behind it.
+                  3:2 rather than 4:3: at two columns on a phone the taller
+                  well pushed the card to 225px, and a row and a half of menu
+                  off the bottom of the screen. object-contain means the photo
+                  is only shown smaller, never cropped. */}
+              <div className="relative aspect-[3/2] w-full overflow-hidden bg-mint">
                 {product.image_url ? (
                   // object-contain, not cover: a whole chicken leg the cashier
                   // can recognise beats a tightly cropped piece of one.
@@ -106,11 +112,13 @@ export function ProductGrid({
                 ) : null}
               </div>
 
-              <div className="flex flex-1 flex-col justify-between gap-1 p-3">
-                <p className="line-clamp-2 font-medium leading-snug text-brandink">
+              <div className="flex flex-1 flex-col justify-between gap-0.5 p-2.5">
+                {/* Two lines still, because "Chicken Crispy Pokoda (2 PCS)"
+                    needs them — just tighter ones. */}
+                <p className="line-clamp-2 text-[0.9375rem] font-medium leading-tight text-brandink">
                   {product.name}
                 </p>
-                <p className="tabular text-lg font-semibold text-forest">
+                <p className="tabular text-[1.0625rem] font-bold leading-none text-forest">
                   {formatMoneyCompact(product.price)}
                 </p>
               </div>

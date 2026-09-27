@@ -274,3 +274,77 @@ body {
     break-inside: avoid;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Till motion.
+
+   Small and quick on purpose. This runs on a counter phone with a queue in
+   front of it: the point of the movement is to say where the order sheet came
+   from, not to be admired. Anything longer than a few hundred milliseconds is
+   time the cashier is waiting.
+   --------------------------------------------------------------------------- */
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes count-pop {
+  from {
+    transform: scale(0.82);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sheet-enter {
+  animation: sheet-up 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.sheet-leave {
+  animation: sheet-down 200ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.scrim-enter {
+  animation: scrim-in 200ms ease-out;
+}
+
+.count-pop {
+  animation: count-pop 180ms ease-out;
+}
+
+/* Someone who has asked the system for less movement gets the sheet without
+   the travel — it still appears, it just does not slide. */
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter,
+  .sheet-leave,
+  .scrim-enter,
+  .count-pop {
+    animation: none;
+  }
+}
