@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { buildReceiptData } from "@/lib/receipt-data";
+import type { ReceiptData } from "@/lib/printing";
 
 export interface HoldOrderLine {
   product_name: string;
@@ -142,4 +144,32 @@ export async function deliverOrder(billId: string): Promise<DeliverResult> {
     ok: true,
     order: { id: billId, number: row.out_bill_number, total: row.out_total },
   };
+}
+
+/**
+ * The receipt for a bill, so the till can print without leaving the screen.
+ *
+ * Same builder the receipt page uses, so the paper is identical whether it
+ * came from here or from Reprint.
+ */
+export async function getReceipt(billId: string): Promise<ReceiptData | null> {
+  await requireUser();
+  const built = await buildReceiptData(billId);
+  return built?.data ?? null;
+}
+
+/**
+ * Notes that a receipt reached the paper.
+ *
+ * Its own action, and its own column, because it must not be able to disturb
+ * the order: a print that failed leaves a delivered order delivered and
+ * simply unprinted, and nothing here can write to status.
+ */
+export async function markPrinted(billId: string): Promise<void> {
+  const user = await requireUser();
+  const supabase = await createClient();
+  await supabase.rpc("mark_bill_printed", {
+    p_actor: user.profile.id,
+    p_bill_id: billId,
+  });
 }

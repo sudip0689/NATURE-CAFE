@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useState, useTransition } from "react";
 
 import { cartReducer, cartTotals, toBillPayload, type CartLine } from "@/lib/cart";
@@ -13,7 +12,13 @@ import { cn } from "@/lib/cn";
 import { CartIcon, ChevronRight, SearchIcon } from "@/components/icons";
 import { OrderPanel } from "./order-panel";
 import { HoldOrders } from "./hold-orders";
-import { listHoldOrders, type HoldOrder } from "./hold-actions";
+import {
+  getReceipt,
+  listHoldOrders,
+  markPrinted,
+  type HoldOrder,
+} from "./hold-actions";
+import { printReceipt } from "@/lib/printing";
 import { ProductGrid, type PosProduct } from "./product-grid";
 
 const ALL = "all";
@@ -63,6 +68,11 @@ export function PosClient({
 
   /** "New Order" or "Hold Orders". */
   const [tab, setTab] = useState<"order" | "hold">("order");
+
+  /** Where the receipt has got to, for the order in the dialog. */
+  const [printState, setPrintState] =
+    useState<"idle" | "printing" | "printed" | "failed">("idle");
+  const [printProblem, setPrintProblem] = useState<string | null>(null);
   const [held, setHeld] = useState<HoldOrder[]>(initialHoldOrders);
   // The result is all that matters here; the list simply updates when it
   // arrives, and a spinner over four cards would be more noise than news.
@@ -123,6 +133,36 @@ export function PosClient({
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refreshHeld]);
+
+  /**
+   * Prints a delivered order, and records that it reached the paper.
+   *
+   * Nothing in here can move the order back: it is delivered before this
+   * runs, and a failure only ever sets a message and offers another go. That
+   * is the whole rule — a jammed printer is not an undelivered order.
+   */
+  const printBill = useCallback(async (billId: string) => {
+    setPrintState("printing");
+    setPrintProblem(null);
+
+    const receipt = await getReceipt(billId);
+    if (!receipt) {
+      setPrintState("failed");
+      setPrintProblem("The receipt could not be loaded. The bill is saved — reprint it from Bills.");
+      return;
+    }
+
+    const outcome = await printReceipt(receipt);
+    if (outcome.ok) {
+      setPrintState("printed");
+      // Best effort: the paper is already out, so a failure to note it down
+      // must not be reported to the counter as a printing problem.
+      void markPrinted(billId);
+    } else {
+      setPrintState("failed");
+      setPrintProblem(outcome.message);
+    }
+  }, []);
 
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
@@ -188,7 +228,18 @@ export function PosClient({
       }
 
       setCompletedBill({ ...result.bill, delivered: false });
-      setDrawerOpen(false);
+      setPrintState("idle");
+      setPrintProblem(null);
+      closeDrawer();
+      // The cart belongs to the order that has just been placed, so it goes
+      // with it -- the cashier is back on an empty till for the next customer
+      // without having to clear anything.
+      dispatch({ type: "clear" });
+      setDiscount("");
+      setCustomerName("");
+      setCustomerMobile("");
+      setQuery("");
+      setRequestId(crypto.randomUUID());
       // The order it just created is now on the pass.
       refreshHeld();
     });
@@ -257,9 +308,14 @@ export function PosClient({
           <HoldOrders
             orders={held}
             onRefresh={refreshHeld}
-            onDelivered={(order) =>
-              setCompletedBill({ ...order, delivered: true })
-            }
+            onDelivered={(order) => {
+              setCompletedBill({ ...order, delivered: true });
+              setPrintState("idle");
+              setPrintProblem(null);
+              // Straight to the printer. The cashier just handed the food
+              // over; making them tap Print as well is a tap for nothing.
+              void printBill(order.id);
+            }}
           />
         ) : (
           <>
@@ -447,21 +503,43 @@ export function PosClient({
 
             {completedBill.delivered ? null : (
               <p className="mt-3 text-sm text-brandmuted">
-                It is waiting in Hold Orders. Print the bill once it has been
-                handed over.
+                It is waiting in Hold Orders. The bill prints when you hand it
+                over.
               </p>
             )}
 
+            {/* Printing is reported where it happens rather than on a screen
+                of its own. The order is already delivered by the time any of
+                this runs, so none of these states can take that back. */}
+            {completedBill.delivered ? (
+              <p
+                role="status"
+                className={cn(
+                  "mt-3 text-sm",
+                  printState === "failed" ? "text-alert-600" : "text-brandmuted",
+                )}
+              >
+                {printState === "printing"
+                  ? "Printing…"
+                  : printState === "printed"
+                    ? "Bill printed."
+                    : printState === "failed"
+                      ? printProblem
+                      : "Ready to print."}
+              </p>
+            ) : null}
+
             <div className="mt-6 space-y-2">
-              {/* Printing belongs after delivery, so it only appears once the
-                  order has actually been handed over. */}
-              {completedBill.delivered ? (
-                <Link
-                  href={`/bills/${completedBill.id}/print`}
-                  className="inline-flex min-h-touch-lg w-full items-center justify-center rounded-control border border-brandline bg-white px-5 text-base font-medium text-brandink hover:bg-ivory"
+              {completedBill.delivered && printState !== "printed" ? (
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => printBill(completedBill.id)}
+                  pending={printState === "printing"}
+                  pendingLabel="Printing…"
                 >
-                  Print bill
-                </Link>
+                  {printState === "failed" ? "Print again" : "Print bill"}
+                </Button>
               ) : null}
               {/* Autofocused: the cashier's next move is almost always the
                   next customer, and they shouldn't have to aim for it. */}

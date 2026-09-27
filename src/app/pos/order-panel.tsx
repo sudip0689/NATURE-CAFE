@@ -266,10 +266,10 @@ export function OrderPanel({
             variant="paid"
             disabled={empty || Boolean(mobileError)}
             pending={generating}
-            pendingLabel="Saving…"
+            pendingLabel="Placing Order…"
             onClick={onGenerate}
           >
-            Generate &amp; Print
+            Place Order
             {empty ? "" : ` · ${formatMoneyCompact(toAmountString(totals.totalPaisa))}`}
           </Button>
         </div>

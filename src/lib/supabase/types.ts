@@ -129,6 +129,7 @@ export interface Database {
           status: BillStatus;
           held_at: string | null;
           delivered_at: string | null;
+          printed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -273,6 +274,14 @@ export interface Database {
           out_bill_number: string;
           out_total: string;
         }[];
+      };
+      mark_bill_printed: {
+        Args: {
+          /** profiles.id of whoever the server says is signed in. */
+          p_actor: string;
+          p_bill_id: string;
+        };
+        Returns: undefined;
       };
       deliver_bill: {
         Args: {

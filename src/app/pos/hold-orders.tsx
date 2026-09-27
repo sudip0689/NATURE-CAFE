@@ -73,13 +73,24 @@ export function HoldOrders({
                 type="button"
                 onClick={() => setOpen(order)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-card border border-brandline bg-white p-3 text-left",
-                  "transition-all duration-150 touch-manipulation active:scale-[0.99] hover:border-caramel/50",
+                  "flex w-full items-center gap-3 rounded-card border bg-white p-3 text-left",
+                  "transition-all duration-150 touch-manipulation active:scale-[0.99]",
+                  // Quiet until an order has been waiting a while, then the
+                  // card itself says so. No animation: a card that flashes
+                  // across a counter all afternoon stops being read.
+                  urgency(since) === "late"
+                    ? "border-caramel bg-sand/40"
+                    : urgency(since) === "slow"
+                      ? "border-caramel/60"
+                      : "border-brandline hover:border-caramel/50",
                 )}
               >
                 <span
                   aria-hidden="true"
-                  className="size-2.5 shrink-0 rounded-full bg-caramel"
+                  className={cn(
+                    "size-2.5 shrink-0 rounded-full",
+                    urgency(since) === "late" ? "bg-coffee" : "bg-caramel",
+                  )}
                 />
 
                 <span className="min-w-0 flex-1">
@@ -96,7 +107,16 @@ export function HoldOrders({
                       {count} {count === 1 ? "Item" : "Items"}
                     </span>
                     <span aria-hidden="true">·</span>
-                    <span className="tabular shrink-0 font-medium text-caramel">
+                    <span className="tabular shrink-0">
+                      Placed {formatPlacedAt(order.created_at)}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span
+                      className={cn(
+                        "tabular shrink-0 font-medium",
+                        urgency(since) === "late" ? "text-coffee" : "text-caramel",
+                      )}
+                    >
                       Held {formatWaited(since)}
                     </span>
                   </span>
@@ -287,4 +307,18 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="tabular font-medium text-brandink">{value}</span>
     </div>
   );
+}
+
+/**
+ * How overdue an order looks, from how long it has been waiting.
+ *
+ * Thresholds rather than a gradient, because the only question a cashier is
+ * asking is "is anything here going cold?" — and three steps answer it at a
+ * glance where a slowly shifting colour would not.
+ */
+function urgency(sinceIso: string): "fresh" | "slow" | "late" {
+  const minutes = (Date.now() - new Date(sinceIso).getTime()) / 60000;
+  if (minutes >= 20) return "late";
+  if (minutes >= 10) return "slow";
+  return "fresh";
 }
