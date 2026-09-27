@@ -1,12 +1,12 @@
 {
-  "latestVersionCode": 3,
-  "latestVersionName": "1.0.3",
-  "apkUrl": "https://nature-cafe-one.vercel.app/downloads/nature-caffe-1.0.3.apk",
+  "latestVersionCode": 4,
+  "latestVersionName": "1.0.4",
+  "apkUrl": "https://nature-cafe-one.vercel.app/downloads/nature-caffe-1.0.4.apk",
   "releaseNotes": [
+    "No more black screen when the app opens",
     "Prints straight to the EZO printer, with no print dialog",
     "58mm payment QR now prints the right way round",
-    "Cash bills print without a payment QR",
-    "The Print button says what it is doing"
+    "Cash bills print without a payment QR"
   ],
   "mandatory": false
 }
