@@ -115,6 +115,8 @@ export interface Database {
           payment_method: PaymentMethod;
           cashier_id: string;
           created_at: string;
+          deleted_at: string | null;
+          deleted_by: string | null;
         };
         Insert: {
           id?: string;
@@ -258,6 +260,15 @@ export interface Database {
           out_bill_number: string;
           out_total: string;
         }[];
+      };
+      delete_bill: {
+        Args: {
+          /** profiles.id of whoever the server says is signed in. */
+          p_actor: string;
+          p_bill_id: string;
+        };
+        /** The bill number that was removed, for the confirmation message. */
+        Returns: string;
       };
     };
     Enums: {

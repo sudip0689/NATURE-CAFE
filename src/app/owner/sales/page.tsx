@@ -26,10 +26,12 @@ export default async function SalesPage({
   const [{ data: summary }, { data: rows }] = await Promise.all([
     supabase.rpc("get_sales_summary", { p_from: from, p_to: to }).single(),
     supabase
-      .from("bills")
-      .select(
-        "id, bill_number, customer_name, customer_mobile, total, payment_method, created_at",
-      )
+    .from("bills")
+    .select(
+      "id, bill_number, customer_name, customer_mobile, total, payment_method, created_at",
+    )
+    // Deleted bills are still rows; every read has to say it wants live ones.
+    .is("deleted_at", null)
       .gte("created_at", kolkataDayStart(from))
       .lt("created_at", kolkataDayAfter(to))
       .order("created_at", { ascending: false })

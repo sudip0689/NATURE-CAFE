@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import Link from "next/link";
 
 import { formatMoney } from "@/lib/money";
@@ -31,7 +33,21 @@ const PAYMENT_LABEL: Record<string, string> = {
  * elements is invalid, and "link, link" per row is worse for a screen reader
  * than slightly busier markup.
  */
-export function BillList({ bills }: { bills: BillListRow[] }) {
+export function BillList({
+  bills,
+  action,
+}: {
+  bills: BillListRow[];
+  /**
+   * An extra control per row, rendered after Reprint.
+   *
+   * A slot rather than a `deletable` flag, so this component stays the same
+   * for the counter and for management and does not need to know that one of
+   * them can delete. Both this and the page that supplies it are server
+   * components, so handing a function across is fine.
+   */
+  action?: (bill: BillListRow) => ReactNode;
+}) {
   return (
     <ul className="space-y-2">
       {bills.map((bill) => (
@@ -78,6 +94,8 @@ export function BillList({ bills }: { bills: BillListRow[] }) {
             >
               <PrinterIcon className="size-4" />
             </Link>
+
+            {action?.(bill)}
           </div>
         </li>
       ))}

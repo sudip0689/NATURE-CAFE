@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { kolkataDayAfter, kolkataDayStart, todayInKolkata } from "@/lib/datetime";
 import { BillList, type BillListRow } from "@/components/bill-list";
+import { DeleteBillButton } from "./delete-bill";
+import { ExportBills } from "./export-bills";
 import { EmptyState } from "@/components/ui/states";
 import { PageHeader } from "@/components/shell/page";
 import { DateRangeForm } from "@/components/shell/date-range-form";
@@ -22,6 +24,8 @@ export default async function OwnerBillsPage({
     .select(
       "id, bill_number, customer_name, customer_mobile, total, payment_method, created_at",
     )
+    // Deleted bills are still rows; every read has to say it wants live ones.
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -57,6 +61,8 @@ export default async function OwnerBillsPage({
         }
       />
 
+      <ExportBills q={q} from={from} to={to} filtering={filtering} />
+
       <DateRangeForm from={from} to={to} max={todayInKolkata()}>
         <label className="w-full min-w-0 sm:w-auto sm:flex-1">
           <span className="mb-1 block text-meta font-medium text-brandmuted">
@@ -87,7 +93,12 @@ export default async function OwnerBillsPage({
             {bills.length === 1 ? "1 bill" : `${bills.length} bills`}
             {bills.length === 200 ? " (most recent 200)" : ""}
           </p>
-          <BillList bills={bills} />
+          <BillList
+            bills={bills}
+            /* Management only. The counter renders the same list without
+               this, and delete_bill refuses a cashier regardless. */
+            action={(bill) => <DeleteBillButton bill={bill} />}
+          />
         </>
       )}
     </>

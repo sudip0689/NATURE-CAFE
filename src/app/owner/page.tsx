@@ -31,6 +31,8 @@ export default async function ManagementDashboard() {
     supabase
       .from("bills")
       .select("id")
+      // Deleted bills are still rows; every read has to say it wants live ones.
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),

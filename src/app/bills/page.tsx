@@ -17,6 +17,8 @@ export default async function RecentBillsPage() {
     .select(
       "id, bill_number, customer_name, customer_mobile, total, payment_method, created_at",
     )
+    // Deleted bills are still rows; every read has to say it wants live ones.
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(50);
 

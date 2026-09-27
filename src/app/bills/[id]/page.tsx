@@ -34,6 +34,8 @@ export default async function BillDetailPage({
     .select(
       "id, bill_number, customer_name, customer_mobile, subtotal, discount, total, payment_method, created_at",
     )
+    // Deleted bills are still rows; every read has to say it wants live ones.
+    .is("deleted_at", null)
     .eq("id", id)
     .maybeSingle();
 
