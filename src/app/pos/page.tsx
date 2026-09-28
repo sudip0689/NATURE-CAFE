@@ -23,7 +23,7 @@ export default async function PosPage() {
   // trips slow, every time — and this is the screen that must open fastest.
   // The held orders join the same batch as the menu, so the Hold Orders count
   // is right on first paint rather than appearing a moment later.
-  const [user, { data: products }, { data: categories }, settings, heldOrders] =
+  const [user, { data: products, error: menuError }, { data: categories }, settings, heldOrders] =
     await Promise.all([
       requireUser(),
       supabase
@@ -84,7 +84,25 @@ export default async function PosPage() {
         }
       />
 
-      {menu.length === 0 ? (
+      {menuError ? (
+        // A failed query and an empty menu are different problems with
+        // different fixes, and telling a cashier the menu is empty when the
+        // network dropped sends them looking in the wrong place.
+        <div className="mx-auto w-full max-w-app px-4 py-10 sm:px-5">
+          <EmptyState
+            title="Unable to load menu"
+            hint="Check the connection and try again."
+            action={
+              <Link
+                href="/pos"
+                className="inline-flex min-h-touch items-center rounded-control bg-forest px-5 text-base font-medium text-white hover:bg-leaf"
+              >
+                Retry
+              </Link>
+            }
+          />
+        </div>
+      ) : menu.length === 0 ? (
         <div className="mx-auto w-full max-w-app px-4 py-10 sm:px-5">
           <EmptyState
             title="The menu is empty"

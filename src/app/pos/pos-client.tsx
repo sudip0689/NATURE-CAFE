@@ -429,7 +429,7 @@ export function PosClient({
         {/* Clears the pinned cart bar (81px) plus the home indicator. The bar
             is fixed, so it contributes no height — without this the last row
             of the menu sits underneath it. */}
-        <div className="flex-1 px-4 pt-[0.375rem] pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
+        <div className="flex-1 px-3 pt-[0.375rem] pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
           <ProductGrid
             products={visibleProducts}
             selectedIds={selectedIds}

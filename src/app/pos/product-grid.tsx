@@ -40,8 +40,16 @@ export function ProductGrid({
     );
   }
 
+  // One column on a phone, two once there is room for two.
+  //
+  // A horizontal card and a two-column grid cannot both hold at 360px, and
+  // the measurements are not close: two columns leave 41px for the product
+  // name — about five characters — so "Chicken Leg (2 PCS)" renders as
+  // "Chick Le…". A cashier who cannot read the name is worse off than one who
+  // scrolls, so the second column waits until 480px, where the name has room
+  // for the two lines it is allowed.
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+    <ul className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 xl:grid-cols-3">
       {products.map((product) => (
         <ProductCard
           key={product.id}
@@ -59,7 +67,7 @@ export function ProductGrid({
  * state changes.
  *
  * Without this every keystroke in the search box re-rendered all twenty-one
- * of them -- about 25ms a letter on a desktop, and several times that on the
+ * of them — about 25ms a letter on a desktop, and several times that on the
  * phone this actually runs on. The card is cheap; twenty-one of them per
  * keypress was not.
  */
@@ -73,93 +81,74 @@ const ProductCard = memo(function ProductCard({
   onToggle: (product: PosProduct) => void;
 }) {
   return (
-          <li>
-            {/* The whole card is the button. At a counter you aim for the
-                picture, not a 24px "+" in its corner.
-                aria-pressed, because this is a toggle: tapping again takes the
-                item back off the order rather than adding another one. */}
-            <button
-              type="button"
-              aria-pressed={selected}
-              onClick={() => onToggle(product)}
-              className={cn(
-                "group relative flex h-full w-full flex-col overflow-hidden rounded-card text-left",
-                // 150ms, and the press gives a little under the thumb so a tap
-                // is acknowledged before the state has even changed.
-                "transition-all duration-150 touch-manipulation active:scale-[0.98]",
-                // The border width never changes. Selecting used to swap it
-                // from 1px to 2px, which with border-box shrank the image well
-                // by 2px — the picture nudged every time a card was tapped.
-                "border border-brandline",
-                selected
-                  ? // Three signals at once, because one thin border was not
-                    // readable at a glance on a phone at counter distance: a
-                    // leaf ring, a tinted card, and lifted elevation. The ring
-                    // is a box-shadow, so it costs no layout.
-                    "bg-mint ring-2 ring-inset ring-leaf shadow-[0_4px_14px_rgba(31,138,76,0.22)]"
-                  : "bg-white hover:bg-ivory",
-              )}
+    <li>
+      {/* The whole card is the button. At a counter you aim for the card, not
+          a 24px "+" in its corner — and there is no "+" here at all: tapping
+          again takes the item back off, which is what aria-pressed says. */}
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={() => onToggle(product)}
+        className={cn(
+          "relative flex h-full w-full items-center gap-2.5 overflow-hidden rounded-card p-2 text-left",
+          // Two pixels at all times, colour is the only thing that changes.
+          // Swapping 1px for 2px on selection would take the extra width out
+          // of the content with border-box, and the picture would nudge under
+          // the cashier's thumb on every tap.
+          "border-2 transition-all duration-150 touch-manipulation active:scale-[0.98]",
+          selected
+            ? "border-forest bg-mint shadow-[0_2px_10px_rgba(14,90,53,0.18)]"
+            : "border-brandline bg-white shadow-[0_1px_2px_rgba(24,53,42,0.04)] hover:bg-ivory",
+        )}
+      >
+        {/* A fixed square, the same on every card whatever the photo is. */}
+        <span className="relative size-[4.5rem] shrink-0 overflow-hidden rounded-xl bg-mint">
+          {product.image_url ? (
+            // object-contain, not cover: a whole chicken leg the cashier can
+            // recognise beats a tightly cropped piece of one.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.image_url}
+              alt=""
+              className="size-full object-contain p-1"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            // A quiet cutlery mark on the brand tint. No emoji, no letter.
+            <span
+              aria-hidden="true"
+              className="flex size-full items-center justify-center"
             >
-              {/* A fixed 3:2 well, the same on every card and identical
-                  whether the card is selected — the photo never decides the
-                  card's height. bg-mint rather than transparent so an image
-                  with an alpha channel lands on the brand tint instead of
-                  whatever is behind it.
-                  3:2 rather than 4:3: at two columns on a phone the taller
-                  well pushed the card to 225px, and a row and a half of menu
-                  off the bottom of the screen. object-contain means the photo
-                  is only shown smaller, never cropped. */}
-              <div className="relative aspect-[3/2] w-full overflow-hidden bg-mint">
-                {product.image_url ? (
-                  // object-contain, not cover: a whole chicken leg the cashier
-                  // can recognise beats a tightly cropped piece of one.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={product.image_url}
-                    alt=""
-                    className="size-full object-contain p-2"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  // A quiet cutlery mark, not a giant letter. Same well, same
-                  // height, so a menu with photos and one without still line up.
-                  <span
-                    aria-hidden="true"
-                    className="flex size-full items-center justify-center"
-                  >
-                    <CutleryIcon className="size-8 text-leaf/35" />
-                  </span>
-                )}
+              <CutleryIcon className="size-7 text-leaf/40" />
+            </span>
+          )}
+        </span>
 
-                {/* The tick sits on the image, top-right, in a filled circle
-                    with a white ring so it holds up over a dark photo. */}
-                {selected ? (
-                  <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-forest text-white shadow-[0_1px_4px_rgba(0,0,0,0.25)] ring-2 ring-white">
-                    <CheckIcon className="size-4" />
-                  </span>
-                ) : null}
-              </div>
+        <span className="flex min-w-0 flex-1 flex-col gap-1 py-0.5 pr-6">
+          <span className="line-clamp-2 text-[0.9375rem] font-semibold leading-tight text-brandink">
+            {product.name}
+          </span>
+          <span className="tabular text-[1.0625rem] font-bold leading-none text-forest">
+            {formatMoneyCompact(product.price)}
+          </span>
+        </span>
 
-              <div className="flex flex-1 flex-col justify-between gap-0.5 p-2.5">
-                {/* Two lines still, because "Chicken Crispy Pokoda (2 PCS)"
-                    needs them — just tighter ones. */}
-                <p className="line-clamp-2 text-[0.9375rem] font-medium leading-tight text-brandink">
-                  {product.name}
-                </p>
-                <p className="tabular text-[1.0625rem] font-bold leading-none text-forest">
-                  {formatMoneyCompact(product.price)}
-                </p>
-              </div>
+        {/* Top-right, clear of the picture and of both lines of the name. */}
+        {selected ? (
+          <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-forest text-white shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+            <CheckIcon className="size-3" />
+          </span>
+        ) : null}
 
-              {/* aria-pressed already announces the state; this says what the
-                  next tap will do, which is the part a badge used to imply. */}
-              <span className="sr-only">
-                {selected
-                  ? `${product.name} is on the order. Tap to take it off.`
-                  : `Add ${product.name} to the order`}
-              </span>
-            </button>
-          </li>
+        {/* aria-pressed already announces the state; this says what the next
+            tap will do, which is the part a badge used to imply. */}
+        <span className="sr-only">
+          {selected
+            ? `${product.name} is on the order. Tap to take it off.`
+            : `Add ${product.name} to the order`}
+        </span>
+      </button>
+    </li>
   );
 });
