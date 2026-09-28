@@ -17,6 +17,7 @@ import {
   type CartLine,
 } from "@/lib/cart";
 import { formatMoney, formatMoneyCompact, toAmountString } from "@/lib/money";
+import { SuccessNote } from "@/components/ui/states";
 import { Button } from "@/components/ui/button";
 import { generateBill } from "./actions";
 import { validateMobile } from "@/lib/validation";
@@ -92,6 +93,15 @@ export function PosClient({
 
   /** Held for the length of one submission, so a fast second tap is dropped. */
   const placing = useRef(false);
+
+  /**
+   * The bill number of an order just cancelled.
+   *
+   * A line on the hold list rather than a dialog: the cashier is already
+   * where they need to be, and nothing follows a cancellation the way
+   * printing follows a delivery.
+   */
+  const [cancelledNotice, setCancelledNotice] = useState<string | null>(null);
 
   const [held, setHeld] = useState<HoldOrder[]>(initialHoldOrders);
   // The result is all that matters here; the list simply updates when it
@@ -404,13 +414,22 @@ export function PosClient({
             own: the cashier moves between ringing up and handing over
             constantly, and a navigation would lose the cart every time. */}
         <div className="sticky top-0 z-10 flex gap-2 border-b border-brandline bg-ivory/95 px-4 pt-3 backdrop-blur">
-          <WorkTab active={tab === "order"} onClick={() => setTab("order")}>
+          <WorkTab
+            active={tab === "order"}
+            onClick={() => {
+              setTab("order");
+              // The notice belongs to the moment it was shown in; coming back
+              // to the hold list later should not find it still sitting there.
+              setCancelledNotice(null);
+            }}
+          >
             New Order
           </WorkTab>
           <WorkTab
             active={tab === "hold"}
             onClick={() => {
               setTab("hold");
+              setCancelledNotice(null);
               refreshHeld();
             }}
           >
@@ -432,6 +451,12 @@ export function PosClient({
         </div>
 
         {tab === "hold" ? (
+          <>
+          {cancelledNotice ? (
+            <div className="px-4 pt-3">
+              <SuccessNote>Order {cancelledNotice} cancelled.</SuccessNote>
+            </div>
+          ) : null}
           <HoldOrders
             orders={held}
             onDelivered={(order) => {
@@ -447,7 +472,16 @@ export function PosClient({
               // over; making them tap Print as well is a tap for nothing.
               void printBill(order.id);
             }}
+            onCancelled={(order) => {
+              // Same local removal, and deliberately no print: a cancelled
+              // order is not a sale and there is no receipt to hand anyone.
+              setHeld((current) =>
+                current.filter((held) => held.id !== order.id),
+              );
+              setCancelledNotice(order.number);
+            }}
           />
+          </>
         ) : (
           <>
             <div className="sticky top-[var(--spacing-worktabs)] z-10 border-b border-brandline bg-ivory/95 px-4 pb-2 pt-3 backdrop-blur">

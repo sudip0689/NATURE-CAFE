@@ -28,7 +28,7 @@ export type PaymentMethod = "cash" | "upi" | "card";
  * over; "delivered" after that. Only a delivered order is a sale — the
  * takings, the bills list and the export all count it then and not before.
  */
-export type BillStatus = "hold" | "delivered";
+export type BillStatus = "hold" | "delivered" | "cancelled";
 
 export interface Database {
   public: {
@@ -130,6 +130,7 @@ export interface Database {
           held_at: string | null;
           delivered_at: string | null;
           printed_at: string | null;
+          cancelled_at: string | null;
         };
         Insert: {
           id?: string;
@@ -282,6 +283,17 @@ export interface Database {
           p_bill_id: string;
         };
         Returns: undefined;
+      };
+      cancel_bill: {
+        Args: {
+          /** profiles.id of whoever the server says is signed in. */
+          p_actor: string;
+          p_bill_id: string;
+        };
+        Returns: {
+          out_bill_number: string;
+          out_total: string;
+        }[];
       };
       deliver_bill: {
         Args: {

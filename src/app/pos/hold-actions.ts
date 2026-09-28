@@ -179,3 +179,55 @@ export async function markPrinted(billId: string): Promise<void> {
     p_bill_id: billId,
   });
 }
+
+export interface CancelResult {
+  ok: boolean;
+  /** Present on success, for the confirmation the cashier sees. */
+  order?: { id: string; number: string; total: string };
+  message?: string;
+}
+
+/**
+ * Cancels an order the customer no longer wants.
+ *
+ * One UPDATE, and the database refuses anything not currently on hold — so a
+ * delivered order cannot be walked backwards out of the day's takings, and a
+ * second tap cannot cancel the same order twice.
+ *
+ * Nothing is deleted. The items, the customer and the payment method it was
+ * rung up under all stay; it simply stops being a sale, which is why every
+ * read that means "sales" already excludes it without knowing this exists.
+ */
+export async function cancelOrder(billId: string): Promise<CancelResult> {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("cancel_bill", {
+    p_actor: user.profile.id,
+    p_bill_id: billId,
+  });
+
+  if (error) {
+    if (error.code === "P0002") {
+      return { ok: false, message: "That order is no longer on hold." };
+    }
+    if (error.code === "42501") {
+      return { ok: false, message: "You are not allowed to cancel orders." };
+    }
+    return { ok: false, message: "The order could not be cancelled. Try again." };
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) {
+    return { ok: false, message: "The order could not be cancelled. Try again." };
+  }
+
+  // Not /pos: the till is standing on it and keeps its own state.
+  revalidatePath("/owner/hold-orders");
+  revalidatePath("/owner");
+
+  return {
+    ok: true,
+    order: { id: billId, number: row.out_bill_number, total: row.out_total },
+  };
+}

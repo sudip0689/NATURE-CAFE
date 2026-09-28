@@ -8,7 +8,7 @@ import { CheckIcon } from "@/components/icons";
 import { formatMoney, formatMoneyCompact } from "@/lib/money";
 import { formatPlacedAt, formatWaited } from "@/lib/datetime";
 import { cn } from "@/lib/cn";
-import { deliverOrder, type HoldOrder } from "./hold-actions";
+import { cancelOrder, deliverOrder, type HoldOrder } from "./hold-actions";
 
 const PAYMENT_LABEL: Record<string, string> = {
   cash: "Cash",
@@ -28,10 +28,13 @@ const TICK_MS = 30_000;
 export function HoldOrders({
   orders,
   onDelivered,
+  onCancelled,
 }: {
   orders: HoldOrder[];
   /** Hands the delivered order up so the till can print it. */
   onDelivered: (order: DeliveredOrder) => void;
+  /** Cancelled instead: the till only needs to say so. Nothing prints. */
+  onCancelled: (order: { id: string; number: string; total: string }) => void;
 }) {
   const [open, setOpen] = useState<HoldOrder | null>(null);
 
@@ -137,6 +140,10 @@ export function HoldOrders({
             setOpen(null);
             onDelivered(delivered);
           }}
+          onCancelled={(cancelled) => {
+            setOpen(null);
+            onCancelled(cancelled);
+          }}
         />
       ) : null}
     </>
@@ -153,12 +160,16 @@ function HoldOrderSheet({
   order,
   onClose,
   onDelivered,
+  onCancelled,
 }: {
   order: HoldOrder;
   onClose: () => void;
   onDelivered: (order: DeliveredOrder) => void;
+  /** The customer changed their mind; nothing prints. */
+  onCancelled: (order: { id: string; number: string; total: string }) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -201,6 +212,27 @@ function HoldOrderSheet({
     working,
     onDelivered,
   ]);
+
+  const cancel = useCallback(async () => {
+    if (working) return;
+    setWorking(true);
+    setProblem(null);
+
+    let result;
+    try {
+      result = await cancelOrder(order.id);
+    } catch {
+      setProblem("Couldn't cancel the order. Check the connection and try again.");
+      return;
+    } finally {
+      // Always, so a failure leaves the order on hold with the button usable
+      // rather than stranded mid-cancel.
+      setWorking(false);
+    }
+
+    if (result.ok && result.order) onCancelled(result.order);
+    else setProblem(result.message ?? "The order could not be cancelled.");
+  }, [order.id, working, onCancelled]);
 
   return (
     <div className="fixed inset-0 z-30">
@@ -332,15 +364,80 @@ function HoldOrderSheet({
                 </Button>
               </div>
             </div>
+          ) : cancelling ? (
+            /* Its own confirmation, worded around what is being given up.
+               Deliberately not the same shape as the delivery one: that is
+               the ordinary end of an order and this is not. */
+            <div className="space-y-3 rounded-card border border-alert-500/30 bg-alert-50 p-3">
+              <p className="text-sm font-semibold text-brandink">
+                Cancel this order?
+              </p>
+
+              <div className="tabular space-y-1 text-sm">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-brandmuted">Order</span>
+                  <span className="font-medium text-brandink">
+                    {order.bill_number}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-brandmuted">Total</span>
+                  <span className="font-medium text-brandink">
+                    {formatMoney(order.total)}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-sm text-brandmuted">
+                This order will be cancelled and will not be counted as a
+                completed sale.
+              </p>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => {
+                    setCancelling(false);
+                    setProblem(null);
+                  }}
+                  disabled={working}
+                >
+                  Keep Order
+                </Button>
+                <Button
+                  variant="danger"
+                  fullWidth
+                  onClick={cancel}
+                  pending={working}
+                  pendingLabel="Cancelling…"
+                >
+                  Cancel Order
+                </Button>
+              </div>
+            </div>
           ) : (
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={onClose}>
-                Close
-              </Button>
-              <Button size="lg" fullWidth onClick={() => setConfirming(true)}>
-                <CheckIcon className="size-5" />
-                Mark Delivered
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={onClose}>
+                  Close
+                </Button>
+                <Button size="lg" fullWidth onClick={() => setConfirming(true)}>
+                  <CheckIcon className="size-5" />
+                  Mark Delivered
+                </Button>
+              </div>
+
+              {/* Secondary and quiet. Cancelling is the rarer path and the
+                  irreversible one, so it does not compete with Delivered for
+                  the thumb. */}
+              <button
+                type="button"
+                onClick={() => setCancelling(true)}
+                className="min-h-touch w-full rounded-control text-sm font-medium text-alert-600 transition-colors duration-150 hover:bg-alert-50 active:bg-alert-50"
+              >
+                Cancel Order
+              </button>
             </div>
           )}
         </div>
