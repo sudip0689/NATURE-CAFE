@@ -64,6 +64,8 @@ export function PosClient({
     number: string;
     total: string;
     delivered: boolean;
+    customerName: string;
+    customerMobile: string | null;
   } | null>(null);
 
   /** "New Order" or "Hold Orders". */
@@ -280,7 +282,12 @@ export function PosClient({
         },
       ]);
 
-      setCompletedBill({ ...result.bill, delivered: false });
+      setCompletedBill({
+        ...placed,
+        delivered: false,
+        customerName: customerName.trim() || "Walk-in Customer",
+        customerMobile: customerMobile.trim() || null,
+      });
       setPrintState("idle");
       setPrintProblem(null);
       closeDrawer();
@@ -539,6 +546,23 @@ export function PosClient({
             <p className="tabular mt-1 text-sm text-brandmuted">
               {completedBill.number}
             </p>
+
+            {/* Who it went to, named on the way out. Only on delivery — while
+                the order is still on hold nobody has handed anything over. */}
+            {completedBill.delivered ? (
+              <div className="mt-2">
+                <p className="font-medium text-brandink">
+                  {completedBill.customerName}
+                </p>
+                {completedBill.customerMobile ? (
+                  <p className="tabular text-sm text-brandmuted">
+                    <span aria-hidden="true">📞 </span>
+                    {completedBill.customerMobile}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
             <p className="tabular mt-3 text-3xl font-semibold leading-none text-forest">
               {formatMoney(completedBill.total)}
             </p>

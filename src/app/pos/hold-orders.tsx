@@ -30,8 +30,8 @@ export function HoldOrders({
   onDelivered,
 }: {
   orders: HoldOrder[];
-  /** Hands the delivered order up so the till can offer to print it. */
-  onDelivered: (order: { id: string; number: string; total: string }) => void;
+  /** Hands the delivered order up so the till can print it. */
+  onDelivered: (order: DeliveredOrder) => void;
 }) {
   const [open, setOpen] = useState<HoldOrder | null>(null);
 
@@ -156,13 +156,14 @@ function HoldOrderSheet({
 }: {
   order: HoldOrder;
   onClose: () => void;
-  onDelivered: (order: { id: string; number: string; total: string }) => void;
+  onDelivered: (order: DeliveredOrder) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
   const since = order.held_at ?? order.created_at;
+  const itemCount = order.items.reduce((sum, line) => sum + line.quantity, 0);
 
   const deliver = useCallback(async () => {
     if (working) return;
@@ -172,9 +173,23 @@ function HoldOrderSheet({
     const result = await deliverOrder(order.id);
     setWorking(false);
 
-    if (result.ok && result.order) onDelivered(result.order);
+    if (result.ok && result.order) {
+      // The customer travels with the order rather than being fetched again:
+      // it is the same order, and it is already here.
+      onDelivered({
+        ...result.order,
+        customerName: order.customer_name || "Walk-in Customer",
+        customerMobile: order.customer_mobile,
+      });
+    }
     else setProblem(result.message ?? "The order could not be delivered.");
-  }, [order.id, working, onDelivered]);
+  }, [
+    order.id,
+    order.customer_name,
+    order.customer_mobile,
+    working,
+    onDelivered,
+  ]);
 
   return (
     <div className="fixed inset-0 z-30">
@@ -254,14 +269,40 @@ function HoldOrderSheet({
           {problem ? <ErrorNote>{problem}</ErrorNote> : null}
 
           {confirming ? (
-            <div className="space-y-2 rounded-card border border-brandline bg-ivory p-3">
-              <p className="text-sm font-semibold text-brandink">
-                Mark this order as delivered?
-              </p>
-              <p className="tabular text-sm text-brandmuted">
-                {order.bill_number} · {formatMoney(order.total)}
-              </p>
-              <div className="flex gap-2 pt-1">
+            /* The last look before the food leaves the counter, so who it is
+               for comes first and the order details sit under it. Everywhere
+               else customer information is secondary; here it is the point. */
+            <div className="space-y-3 rounded-card border border-leaf/40 bg-mint p-3">
+              <p className="text-sm font-semibold text-forest">Deliver order</p>
+
+              <div>
+                <p className="text-meta text-brandmuted">Customer</p>
+                <p className="text-lg font-semibold leading-tight text-brandink">
+                  {order.customer_name || "Walk-in Customer"}
+                </p>
+                <p className="tabular mt-0.5 text-sm text-brandink">
+                  {order.customer_mobile ? (
+                    <>
+                      <span aria-hidden="true">📞 </span>
+                      {order.customer_mobile}
+                    </>
+                  ) : (
+                    <span className="text-brandmuted">Mobile not provided</span>
+                  )}
+                </p>
+              </div>
+
+              <div className="tabular flex items-baseline justify-between gap-3 border-t border-leaf/25 pt-2 text-sm">
+                <span className="text-brandmuted">
+                  {order.bill_number} · {itemCount}{" "}
+                  {itemCount === 1 ? "Item" : "Items"}
+                </span>
+                <span className="font-bold text-forest">
+                  {formatMoney(order.total)}
+                </span>
+              </div>
+
+              <div className="flex gap-2">
                 <Button
                   variant="secondary"
                   fullWidth
@@ -276,7 +317,7 @@ function HoldOrderSheet({
                   pending={working}
                   pendingLabel="Delivering…"
                 >
-                  Delivered
+                  Confirm Delivered
                 </Button>
               </div>
             </div>
@@ -318,4 +359,19 @@ function urgency(sinceIso: string): "fresh" | "slow" | "late" {
   if (minutes >= 20) return "late";
   if (minutes >= 10) return "slow";
   return "fresh";
+}
+
+/**
+ * What the till needs after an order has been handed over.
+ *
+ * The customer comes along for the ride rather than being read back: it is
+ * the same order that was just on screen, so asking the database who it
+ * belonged to would be a round trip for something already in hand.
+ */
+export interface DeliveredOrder {
+  id: string;
+  number: string;
+  total: string;
+  customerName: string;
+  customerMobile: string | null;
 }
