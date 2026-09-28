@@ -28,6 +28,9 @@ export async function buildReceiptData(
       )
       .eq("id", billId)
       .is("deleted_at", null)
+      // A sale is a delivered order: a held or cancelled one has no receipt to
+      // print, and the only way to ask for one is a guessed or stale URL.
+      .eq("status", "delivered")
       .maybeSingle(),
     supabase
       .from("bill_items")

@@ -27,12 +27,15 @@ export default async function PrintReceiptPage({
   // is the normal case the spec asks for.
   const [{ data: bill }, { data: items }, settings] = await Promise.all([
     supabase
-    .from("bills")
-    .select(
-      "id, bill_number, customer_name, customer_mobile, subtotal, discount, total, payment_method, created_at",
-    )
-    // Deleted bills are still rows; every read has to say it wants live ones.
-    .is("deleted_at", null)
+      .from("bills")
+      .select(
+        "id, bill_number, customer_name, customer_mobile, subtotal, discount, total, payment_method, created_at",
+      )
+      // Deleted bills are still rows; every read has to say it wants live ones.
+      .is("deleted_at", null)
+      // A sale is a delivered order: a held or cancelled one has no receipt to
+      // print, and the only way to ask for one is a guessed or stale URL.
+      .eq("status", "delivered")
       .eq("id", id)
       .maybeSingle(),
     supabase

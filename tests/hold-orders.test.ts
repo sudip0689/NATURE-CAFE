@@ -76,23 +76,12 @@ function sourceFiles(dir: string): string[] {
 describe("reads that mean 'sales'", () => {
   // Where a bill is read as a completed sale. The hold list is deliberately
   // absent: it wants the opposite.
-  const SALES_READS = [
-    join("src", "app", "bills", "page.tsx"),
-    join("src", "app", "owner", "bills", "page.tsx"),
-    join("src", "app", "owner", "sales", "page.tsx"),
-    join("src", "app", "owner", "page.tsx"),
-    join("src", "app", "owner", "bills", "export", "route.ts"),
-  ];
-
-  it.each(SALES_READS)("%s counts delivered orders only", (relative) => {
-    const source = readFileSync(join(process.cwd(), relative), "utf8");
-    const at = source.indexOf('.from("bills")');
-    expect(at).toBeGreaterThanOrEqual(0);
-    const query = source.slice(at, at + 700);
-    expect(query).toContain('.eq("status", "delivered")');
-    expect(query).toContain('.is("deleted_at", null)');
-  });
-
+  //
+  // The list of those reads used to be written out here, and it was wrong:
+  // it named five screens and missed the two receipt pages and the receipt
+  // builder, all of which would happily render a cancelled order. What walks
+  // the source instead now lives in sales-reads.test.ts, which cannot be out
+  // of date by construction.
   it("asks for held orders in exactly one place", () => {
     // If a second hold query appears it should be because someone meant it,
     // not because the filter was copied and flipped by accident.
