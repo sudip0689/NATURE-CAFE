@@ -379,10 +379,10 @@ export function PosClient({
           />
         ) : (
           <>
-        <div className="sticky top-[var(--spacing-worktabs)] z-10 space-y-3 border-b border-brandline bg-ivory/95 px-4 py-3 backdrop-blur">
+        <div className="sticky top-[var(--spacing-worktabs)] z-10 border-b border-brandline bg-ivory/95 px-4 pb-2 pt-3 backdrop-blur">
           <div className="relative">
             <SearchIcon
-              className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-brandmuted"
+              className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-brandmuted"
               aria-hidden="true"
             />
             <input
@@ -391,14 +391,22 @@ export function PosClient({
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search the menu…"
               aria-label="Search the menu"
-              className="w-full min-h-touch rounded-control border border-brandline bg-white pl-10 pr-4 text-base text-brandink placeholder:text-brandmuted focus:border-leaf focus:outline-none"
+              className="h-[3.75rem] w-full rounded-full border border-brandline bg-white pl-12 pr-4 text-[1.0625rem] text-brandink shadow-[0_1px_2px_rgba(24,53,42,0.04)] placeholder:text-brandmuted focus:border-leaf focus:outline-none"
             />
           </div>
 
+          {/*
+            One row, always. `shrink-0` on every chip is what stops flexbox
+            compressing them to fit instead of letting the strip scroll.
+
+            No touch-action here on purpose: pinning it to pan-x would make a
+            vertical swipe that happens to start on a chip do nothing, and the
+            menu is the thing people scroll. The default handles both.
+          */}
           <div
             role="tablist"
             aria-label="Categories"
-            className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="-mx-4 mt-2.5 flex gap-2 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <CategoryTab
               active={activeCategory === ALL}
@@ -421,7 +429,7 @@ export function PosClient({
         {/* Clears the pinned cart bar (81px) plus the home indicator. The bar
             is fixed, so it contributes no height — without this the last row
             of the menu sits underneath it. */}
-        <div className="flex-1 px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
+        <div className="flex-1 px-4 pt-[0.375rem] pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
           <ProductGrid
             products={visibleProducts}
             selectedIds={selectedIds}
@@ -636,10 +644,13 @@ function CategoryTab({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "min-h-touch shrink-0 rounded-full border px-4 text-base font-medium touch-manipulation",
-        "transition-all duration-150 active:scale-[0.97]",
+        // A fixed height and generous side padding, so a three-letter label
+        // like "All" is still a pill rather than a circle sitting oddly at
+        // the head of the row.
+        "h-11 shrink-0 whitespace-nowrap rounded-full border px-5 text-[0.9375rem] font-semibold",
+        "touch-manipulation transition-all duration-150 active:scale-[0.97]",
         active
-          ? "border-forest bg-forest text-white"
+          ? "border-forest bg-forest text-white shadow-[0_1px_3px_rgba(14,90,53,0.25)]"
           : "border-brandline bg-white text-brandink hover:bg-mint",
       )}
     >
