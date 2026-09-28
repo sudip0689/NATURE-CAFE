@@ -1,8 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
-import { cartReducer, cartTotals, toBillPayload, type CartLine } from "@/lib/cart";
+import {
+  cartReducer,
+  cartTotals,
+  toBillPayload,
+  type CartLine,
+} from "@/lib/cart";
 import { formatMoney, formatMoneyCompact, toAmountString } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { generateBill } from "./actions";
@@ -72,9 +85,14 @@ export function PosClient({
   const [tab, setTab] = useState<"order" | "hold">("order");
 
   /** Where the receipt has got to, for the order in the dialog. */
-  const [printState, setPrintState] =
-    useState<"idle" | "printing" | "printed" | "failed">("idle");
+  const [printState, setPrintState] = useState<
+    "idle" | "printing" | "printed" | "failed"
+  >("idle");
   const [printProblem, setPrintProblem] = useState<string | null>(null);
+
+  /** Held for the length of one submission, so a fast second tap is dropped. */
+  const placing = useRef(false);
+
   const [held, setHeld] = useState<HoldOrder[]>(initialHoldOrders);
   // The result is all that matters here; the list simply updates when it
   // arrives, and a spinner over four cards would be more noise than news.
@@ -106,7 +124,8 @@ export function PosClient({
     return products.filter((product) => {
       const matchesCategory =
         activeCategory === ALL || product.category_id === activeCategory;
-      const matchesQuery = !needle || product.name.toLowerCase().includes(needle);
+      const matchesQuery =
+        !needle || product.name.toLowerCase().includes(needle);
       return matchesCategory && matchesQuery;
     });
   }, [products, query, activeCategory]);
@@ -147,22 +166,35 @@ export function PosClient({
     setPrintState("printing");
     setPrintProblem(null);
 
-    const receipt = await getReceipt(billId);
-    if (!receipt) {
-      setPrintState("failed");
-      setPrintProblem("The receipt could not be loaded. The bill is saved — reprint it from Bills.");
-      return;
-    }
+    try {
+      const receipt = await getReceipt(billId);
+      if (!receipt) {
+        setPrintState("failed");
+        setPrintProblem(
+          "The receipt could not be loaded. The bill is saved — reprint it from Bills.",
+        );
+        return;
+      }
 
-    const outcome = await printReceipt(receipt);
-    if (outcome.ok) {
-      setPrintState("printed");
-      // Best effort: the paper is already out, so a failure to note it down
-      // must not be reported to the counter as a printing problem.
-      void markPrinted(billId);
-    } else {
+      const outcome = await printReceipt(receipt);
+      if (outcome.ok) {
+        setPrintState("printed");
+        // Best effort: the paper is already out, so a failure to note it down
+        // must not be reported to the counter as a printing problem.
+        void markPrinted(billId);
+      } else {
+        setPrintState("failed");
+        setPrintProblem(outcome.message);
+      }
+    } catch {
+      // Fetching the receipt is a server action, and those reject rather than
+      // return when the network goes. Landing here used to leave the dialog
+      // on "Printing…" with the button disabled and no way back to it — for
+      // an order that is already delivered and already a sale.
       setPrintState("failed");
-      setPrintProblem(outcome.message);
+      setPrintProblem(
+        "Couldn't reach the receipt. The order is delivered — try printing again.",
+      );
     }
   }, []);
 
@@ -224,82 +256,115 @@ export function PosClient({
 
   function handleGenerate() {
     if (lines.length === 0 || mobileError) return;
+    /**
+     * The real double-tap guard.
+     *
+     * `disabled` follows a state update, so it is not set within the same
+     * tick as the first tap — measured. Six rapid taps did only send one
+     * order, but that relied on React flushing between them rather than on
+     * anything guaranteeing it. A ref is set before anything can yield.
+     *
+     * The server has the last word regardless: the same requestId goes with
+     * every attempt, and create_bill returns the existing bill rather than
+     * making a second one.
+     */
+    if (placing.current) return;
+    placing.current = true;
     setBillingError(null);
 
     startSaving(async () => {
-      const result = await generateBill({
-        // Ids and quantities only — the server prices the order itself.
-        items: toBillPayload(lines),
-        paymentMethod,
-        customerName,
-        customerMobile,
-        discount,
-        requestId,
-      });
+      // Whatever happens below — success, a returned error, a rejected
+      // request, a thrown anything — the guard comes off. A latch that only
+      // releases on the happy path is a Place Order button that works once.
+      try {
+        let result;
+        try {
+          result = await generateBill({
+            // Ids and quantities only — the server prices the order itself.
+            items: toBillPayload(lines),
+            paymentMethod,
+            customerName,
+            customerMobile,
+            discount,
+            requestId,
+          });
+        } catch {
+          // The network went while the order was in flight. The cart, the
+          // customer and the requestId are all untouched, so trying again
+          // retries this order — and if the first attempt actually reached the
+          // database, create_bill returns that same bill rather than a second.
+          setBillingError(
+            "Couldn't place the order. Check the connection and try again.",
+          );
+          return;
+        }
 
-      if (result.error || !result.bill) {
-        // The cart is left exactly as it was, so "Try again" retries this
-        // order rather than making the customer order it again. The same
-        // requestId goes with it, so a retry of a request that actually
-        // landed returns the first bill instead of a second one.
-        setBillingError(result.error);
-        return;
+        if (result.error || !result.bill) {
+          // The cart is left exactly as it was, so "Try again" retries this
+          // order rather than making the customer order it again. The same
+          // requestId goes with it, so a retry of a request that actually
+          // landed returns the first bill instead of a second one.
+          setBillingError(result.error);
+          return;
+        }
+
+        // Narrowing does not survive into the setState callback below.
+        const placed = result.bill;
+
+        /**
+         * The new card is assembled from the cart that was just sent, not
+         * fetched back.
+         *
+         * Everything on it is already here — the lines are the cart, and the
+         * number, id and total come back from the insert itself, priced by the
+         * server. Asking the database to describe an order we just described to
+         * it is two round trips for information we are holding.
+         */
+        setHeld((current) => [
+          ...current,
+          {
+            id: placed.id,
+            bill_number: placed.number,
+            customer_name: customerName.trim() || "Walk-in Customer",
+            customer_mobile: customerMobile.trim() || null,
+            subtotal: toAmountString(totals.subtotalPaisa),
+            discount: toAmountString(totals.discountPaisa),
+            total: placed.total,
+            payment_method: paymentMethod,
+            created_at: new Date().toISOString(),
+            held_at: new Date().toISOString(),
+            items: lines.map((line) => ({
+              product_name: line.name,
+              quantity: line.quantity,
+              unit_price: line.unitPrice,
+              line_total: toAmountString(
+                Math.round(Number(line.unitPrice) * 100) * line.quantity,
+              ),
+            })),
+          },
+        ]);
+
+        setCompletedBill({
+          ...placed,
+          delivered: false,
+          customerName: customerName.trim() || "Walk-in Customer",
+          customerMobile: customerMobile.trim() || null,
+        });
+        setPrintState("idle");
+        setPrintProblem(null);
+        closeDrawer();
+        // The cart belongs to the order that has just been placed, so it goes
+        // with it -- the cashier is back on an empty till for the next customer
+        // without having to clear anything.
+        dispatch({ type: "clear" });
+        setDiscount("");
+        setCustomerName("");
+        setCustomerMobile("");
+        setQuery("");
+        setRequestId(crypto.randomUUID());
+      } finally {
+        placing.current = false;
       }
-
-      // Narrowing does not survive into the setState callback below.
-      const placed = result.bill;
-
-      /**
-       * The new card is assembled from the cart that was just sent, not
-       * fetched back.
-       *
-       * Everything on it is already here — the lines are the cart, and the
-       * number, id and total come back from the insert itself, priced by the
-       * server. Asking the database to describe an order we just described to
-       * it is two round trips for information we are holding.
-       */
-      setHeld((current) => [
-        ...current,
-        {
-          id: placed.id,
-          bill_number: placed.number,
-          customer_name: customerName.trim() || "Walk-in Customer",
-          customer_mobile: customerMobile.trim() || null,
-          subtotal: toAmountString(totals.subtotalPaisa),
-          discount: toAmountString(totals.discountPaisa),
-          total: placed.total,
-          payment_method: paymentMethod,
-          created_at: new Date().toISOString(),
-          held_at: new Date().toISOString(),
-          items: lines.map((line) => ({
-            product_name: line.name,
-            quantity: line.quantity,
-            unit_price: line.unitPrice,
-            line_total: toAmountString(
-              Math.round(Number(line.unitPrice) * 100) * line.quantity,
-            ),
-          })),
-        },
-      ]);
-
-      setCompletedBill({
-        ...placed,
-        delivered: false,
-        customerName: customerName.trim() || "Walk-in Customer",
-        customerMobile: customerMobile.trim() || null,
-      });
-      setPrintState("idle");
-      setPrintProblem(null);
-      closeDrawer();
-      // The cart belongs to the order that has just been placed, so it goes
-      // with it -- the cashier is back on an empty till for the next customer
-      // without having to clear anything.
-      dispatch({ type: "clear" });
-      setDiscount("");
-      setCustomerName("");
-      setCustomerMobile("");
-      setQuery("");
-      setRequestId(crypto.randomUUID());
     });
   }
 
@@ -313,8 +378,10 @@ export function PosClient({
     paymentMethod,
     billingError,
     generating: saving,
-    onIncrement: (productId: string) => dispatch({ type: "increment", productId }),
-    onDecrement: (productId: string) => dispatch({ type: "decrement", productId }),
+    onIncrement: (productId: string) =>
+      dispatch({ type: "increment", productId }),
+    onDecrement: (productId: string) =>
+      dispatch({ type: "decrement", productId }),
     onCustomerNameChange: setCustomerName,
     onCustomerMobileChange: setCustomerMobile,
     onDiscountChange: setDiscount,
@@ -353,7 +420,9 @@ export function PosClient({
                 key={held.length}
                 className={cn(
                   "count-pop tabular ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-px text-[0.7rem] font-bold",
-                  tab === "hold" ? "bg-white/20 text-white" : "bg-caramel text-white",
+                  tab === "hold"
+                    ? "bg-white/20 text-white"
+                    : "bg-caramel text-white",
                 )}
               >
                 {held.length}
@@ -368,7 +437,9 @@ export function PosClient({
             onDelivered={(order) => {
               // Gone from the list the moment the database confirmed it, from
               // local state -- no refetch to discover what we were just told.
-              setHeld((current) => current.filter((held) => held.id !== order.id));
+              setHeld((current) =>
+                current.filter((held) => held.id !== order.id),
+              );
               setCompletedBill({ ...order, delivered: true });
               setPrintState("idle");
               setPrintProblem(null);
@@ -379,23 +450,23 @@ export function PosClient({
           />
         ) : (
           <>
-        <div className="sticky top-[var(--spacing-worktabs)] z-10 border-b border-brandline bg-ivory/95 px-4 pb-2 pt-3 backdrop-blur">
-          <div className="relative">
-            <SearchIcon
-              className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-brandmuted"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search the menu…"
-              aria-label="Search the menu"
-              className="h-[3.75rem] w-full rounded-full border border-brandline bg-white pl-12 pr-4 text-[1.0625rem] text-brandink shadow-[0_1px_2px_rgba(24,53,42,0.04)] placeholder:text-brandmuted focus:border-leaf focus:outline-none"
-            />
-          </div>
+            <div className="sticky top-[var(--spacing-worktabs)] z-10 border-b border-brandline bg-ivory/95 px-4 pb-2 pt-3 backdrop-blur">
+              <div className="relative">
+                <SearchIcon
+                  className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-brandmuted"
+                  aria-hidden="true"
+                />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search the menu…"
+                  aria-label="Search the menu"
+                  className="h-[3.75rem] w-full rounded-full border border-brandline bg-white pl-12 pr-4 text-[1.0625rem] text-brandink shadow-[0_1px_2px_rgba(24,53,42,0.04)] placeholder:text-brandmuted focus:border-leaf focus:outline-none"
+                />
+              </div>
 
-          {/*
+              {/*
             One row, always. `shrink-0` on every chip is what stops flexbox
             compressing them to fit instead of letting the strip scroll.
 
@@ -403,39 +474,39 @@ export function PosClient({
             vertical swipe that happens to start on a chip do nothing, and the
             menu is the thing people scroll. The default handles both.
           */}
-          <div
-            role="tablist"
-            aria-label="Categories"
-            className="-mx-4 mt-2.5 flex gap-2 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            <CategoryTab
-              active={activeCategory === ALL}
-              onClick={() => setActiveCategory(ALL)}
-            >
-              All
-            </CategoryTab>
-            {categories.map((category) => (
-              <CategoryTab
-                key={category.id}
-                active={activeCategory === category.id}
-                onClick={() => setActiveCategory(category.id)}
+              <div
+                role="tablist"
+                aria-label="Categories"
+                className="-mx-4 mt-2.5 flex gap-2 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {category.name}
-              </CategoryTab>
-            ))}
-          </div>
-        </div>
+                <CategoryTab
+                  active={activeCategory === ALL}
+                  onClick={() => setActiveCategory(ALL)}
+                >
+                  All
+                </CategoryTab>
+                {categories.map((category) => (
+                  <CategoryTab
+                    key={category.id}
+                    active={activeCategory === category.id}
+                    onClick={() => setActiveCategory(category.id)}
+                  >
+                    {category.name}
+                  </CategoryTab>
+                ))}
+              </div>
+            </div>
 
-        {/* Clears the pinned cart bar (81px) plus the home indicator. The bar
+            {/* Clears the pinned cart bar (81px) plus the home indicator. The bar
             is fixed, so it contributes no height — without this the last row
             of the menu sits underneath it. */}
-        <div className="flex-1 px-3 pt-[0.375rem] pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
-          <ProductGrid
-            products={visibleProducts}
-            selectedIds={selectedIds}
-            onToggle={toggleProduct}
-          />
-        </div>
+            <div className="flex-1 px-3 pt-[0.375rem] pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6">
+              <ProductGrid
+                products={visibleProducts}
+                selectedIds={selectedIds}
+                onToggle={toggleProduct}
+              />
+            </div>
           </>
         )}
       </section>
@@ -499,12 +570,30 @@ export function PosClient({
       </div>
 
       {drawerOpen || closingDrawer ? (
-        <div className="fixed inset-0 z-30 lg:hidden">
+        /*
+         * pointer-events-none while it is closing.
+         *
+         * The sheet stays mounted for the length of its slide down, and
+         * without this the full-screen scrim goes on swallowing taps for that
+         * whole 200ms — measured: a tap over a product card landed on "Close
+         * order" instead. A cashier moving quickly taps the next item inside
+         * that window most times, which is exactly how it looked: buttons
+         * that sometimes do nothing, for no reason anyone could see.
+         */
+        <div
+          className={cn(
+            "fixed inset-0 z-30 lg:hidden",
+            closingDrawer && "pointer-events-none",
+          )}
+        >
           <button
             type="button"
             aria-label="Close order"
             onClick={closeDrawer}
-            className={cn("absolute inset-0 bg-brandink/40", !closingDrawer && "scrim-enter")}
+            className={cn(
+              "absolute inset-0 bg-brandink/40 transition-opacity duration-200",
+              closingDrawer ? "opacity-0" : "scrim-enter opacity-100",
+            )}
           />
           <div
             role="dialog"
@@ -539,7 +628,9 @@ export function PosClient({
               aria-hidden="true"
               className={cn(
                 "count-pop mx-auto flex size-14 items-center justify-center rounded-full text-2xl",
-                completedBill.delivered ? "bg-mint text-leaf" : "bg-sand text-caramel",
+                completedBill.delivered
+                  ? "bg-mint text-leaf"
+                  : "bg-sand text-caramel",
               )}
             >
               ✓
@@ -590,7 +681,9 @@ export function PosClient({
                 role="status"
                 className={cn(
                   "mt-3 text-sm",
-                  printState === "failed" ? "text-alert-600" : "text-brandmuted",
+                  printState === "failed"
+                    ? "text-alert-600"
+                    : "text-brandmuted",
                 )}
               >
                 {printState === "printing"

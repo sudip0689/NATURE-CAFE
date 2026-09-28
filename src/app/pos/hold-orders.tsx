@@ -170,8 +170,19 @@ function HoldOrderSheet({
     setWorking(true);
     setProblem(null);
 
-    const result = await deliverOrder(order.id);
-    setWorking(false);
+    let result;
+    try {
+      result = await deliverOrder(order.id);
+    } catch {
+      // A server action rejects outright when the network drops — it does not
+      // come back as a result object. Without this the button stayed disabled
+      // for good and the order could not be delivered at all until the sheet
+      // was closed and reopened.
+      setProblem("Couldn't deliver the order. Check the connection and try again.");
+      return;
+    } finally {
+      setWorking(false);
+    }
 
     if (result.ok && result.order) {
       // The customer travels with the order rather than being fetched again:

@@ -165,7 +165,13 @@ export function ShellDrawer({
     <div
         className={cn(
           "fixed inset-0 z-40 lg:hidden",
-          open ? "visible" : "invisible delay-150",
+          // pointer-events, not just visibility. `invisible` is delayed by
+          // 150ms so the panel can slide out, and for those 150ms this was
+          // still visible and still hit-testable across the whole screen at
+          // z-40 — an opacity-0 scrim swallows taps exactly like an opaque
+          // one. Closing the menu left the app dead to the touch for a sixth
+          // of a second afterwards.
+          open ? "visible" : "pointer-events-none invisible delay-150",
         )}
         aria-hidden={!open}
       >
