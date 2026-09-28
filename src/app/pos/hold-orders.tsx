@@ -8,6 +8,7 @@ import { CheckIcon } from "@/components/icons";
 import { formatMoney, formatMoneyCompact } from "@/lib/money";
 import { formatPlacedAt, formatWaited } from "@/lib/datetime";
 import { cn } from "@/lib/cn";
+import { useOverlayBack } from "@/lib/use-overlay-back";
 import { cancelOrder, deliverOrder, type HoldOrder } from "./hold-actions";
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -172,6 +173,18 @@ function HoldOrderSheet({
   const [cancelling, setCancelling] = useState(false);
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+
+  // Android Back steps back out of this one layer at a time: a confirmation
+  // first, then the order. Not while a request is in flight — the buttons are
+  // disabled then, and Back should not be the one way to abandon a delivery
+  // half-way through.
+  useOverlayBack(true, onClose);
+  useOverlayBack(confirming, () => {
+    if (!working) setConfirming(false);
+  });
+  useOverlayBack(cancelling, () => {
+    if (!working) setCancelling(false);
+  });
 
   const since = order.held_at ?? order.created_at;
   const itemCount = order.items.reduce((sum, line) => sum + line.quantity, 0);

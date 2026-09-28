@@ -96,15 +96,36 @@ export function ShellDrawer({
     () => false,
   );
 
+  /**
+   * Whether the entry pushed below is still on the history stack.
+   *
+   * Tracked here rather than read back off history.state, which is not ours
+   * to rely on: Next's router calls replaceState with its own object every
+   * time it refreshes a route, so a drawer open across a server action would
+   * come back looking as though it had never pushed anything.
+   */
+  const pushed = useRef(false);
+
   // Android back closes the drawer instead of leaving the page.
   //
   // Opening pushes a history entry at the same URL; the system back button
   // pops it, which arrives here as popstate and simply closes the drawer.
+  //
+  // Deliberately not the shared useOverlayBack the till's sheets use. That
+  // unwinds its entry whenever the overlay closes by any other means, which
+  // is right for a sheet and wrong for a menu of links: tapping a destination
+  // closes this and starts a navigation at the same moment, and the traversal
+  // lands mid-transition and cancels it — measured, with the drawer shutting
+  // and the app staying exactly where it was.
   useEffect(() => {
     if (!open) return;
 
     window.history.pushState({ nc_drawer: true }, "");
-    const onPop = () => setOpen(false);
+    pushed.current = true;
+    const onPop = () => {
+      pushed.current = false;
+      setOpen(false);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, [open]);
@@ -117,8 +138,12 @@ export function ShellDrawer({
    * the page afterwards. popstate does the actual closing.
    */
   const dismiss = useCallback(() => {
-    if (window.history.state?.nc_drawer) window.history.back();
-    else setOpen(false);
+    if (pushed.current) {
+      pushed.current = false;
+      window.history.back();
+    } else {
+      setOpen(false);
+    }
   }, []);
 
   /**
@@ -129,7 +154,10 @@ export function ShellDrawer({
    * The leftover entry is the same URL, so Back from the new page still
    * returns where it should.
    */
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    pushed.current = false;
+    setOpen(false);
+  }, []);
 
   // Escape, and the scroll lock that stops the page sliding behind the drawer.
   useEffect(() => {

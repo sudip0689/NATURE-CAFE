@@ -23,6 +23,7 @@ import { generateBill } from "./actions";
 import { validateMobile } from "@/lib/validation";
 import type { PaymentMethod } from "@/lib/supabase/types";
 import { cn } from "@/lib/cn";
+import { useOverlayBack } from "@/lib/use-overlay-back";
 import { CartIcon, ChevronRight, SearchIcon } from "@/components/icons";
 import { OrderPanel } from "./order-panel";
 import { HoldOrders } from "./hold-orders";
@@ -250,6 +251,12 @@ export function PosClient({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [drawerOpen, closeDrawer]);
+
+  // Android Back closes the sheet in front of the cashier rather than leaving
+  // the till. The printed-bill dialog answers it too: by then the order is
+  // placed, so the only way on from there is the next customer.
+  useOverlayBack(drawerOpen, closeDrawer);
+  useOverlayBack(completedBill !== null, startNextOrder);
 
   function startNextOrder() {
     dispatch({ type: "clear" });
